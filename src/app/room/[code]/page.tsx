@@ -90,7 +90,9 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const [copied, setCopied] = useState(false);
   const [showGames, setShowGames] = useState(false);
 
-  const session = typeof window !== 'undefined' ? getSession() : null;
+  // Store session snapshot on mount — don't re-read from localStorage
+  // (other tabs may overwrite it with their own playerId)
+  const [session] = useState(() => typeof window !== 'undefined' ? getSession() : null);
   const currentPlayer = room?.players.find(p => p.id === session?.playerId);
   const isHost = currentPlayer?.isHost || false;
   const readyCount = room?.players.filter(p => p.isReady).length || 0;
