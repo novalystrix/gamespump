@@ -37,8 +37,9 @@ export default function JoinPage({ params }: { params: { code: string } }) {
     setError('');
 
     try {
-      let session = getSession();
-      const playerId = session?.playerId || generatePlayerId();
+      const session = getSession();
+      // Always generate a fresh player ID per join to support multiple players from same device/browser
+      const playerId = generatePlayerId();
       
       session = {
         playerId,
