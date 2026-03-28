@@ -8,6 +8,27 @@ export interface Player {
   joinedAt: number;
 }
 
+export interface TriviaQuestion {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  category: string;
+}
+
+export interface TriviaAnswer {
+  answerIndex: number;
+  answeredAt: number;
+}
+
+export interface TriviaGameState {
+  currentQuestion: number;
+  questions: TriviaQuestion[];
+  answers: Record<string, TriviaAnswer>; // playerId -> answer for current question
+  scores: Record<string, number>; // playerId -> total score
+  questionStartedAt: number;
+  phase: 'question' | 'results' | 'leaderboard';
+}
+
 export interface Room {
   code: string;
   hostId: string;
@@ -16,6 +37,7 @@ export interface Room {
   status: 'waiting' | 'playing' | 'finished';
   createdAt: number;
   lastActivity: number;
+  gameState?: TriviaGameState;
 }
 
 export interface GameInfo {

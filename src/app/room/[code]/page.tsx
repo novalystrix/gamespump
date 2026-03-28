@@ -100,10 +100,15 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       }
       const data = await res.json();
       setRoom(data.room);
+
+      // Redirect to game page when game starts
+      if (data.room.status === 'playing' && data.room.selectedGame) {
+        router.push(`/game/${params.code}/${data.room.selectedGame}`);
+      }
     } catch {
       setError('Failed to connect');
     }
-  }, [params.code]);
+  }, [params.code, router]);
 
   useEffect(() => {
     fetchRoom();
@@ -283,6 +288,15 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           {isHost && (
             <button
               disabled={!canStart}
+              onClick={async () => {
+                if (!canStart || !session) return;
+                await fetch(`/api/rooms/${params.code}/start`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ playerId: session.playerId }),
+                });
+                fetchRoom();
+              }}
               className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
                 bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white
                 shadow-lg shadow-purple-500/25
