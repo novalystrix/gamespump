@@ -52,6 +52,12 @@ export function joinRoom(code: string, player: Player): Room | null {
   // Remove existing player with same ID (rejoin)
   room.players = room.players.filter(p => p.id !== player.id);
   room.players.push(player);
+  
+  // If joining as host, update room's hostId to match new player ID
+  if (player.isHost) {
+    room.hostId = player.id;
+  }
+  
   room.lastActivity = Date.now();
   return room;
 }
@@ -97,7 +103,9 @@ export function setPlayerReady(code: string, playerId: string, ready: boolean): 
 export function startGame(code: string, hostId: string): Room | null {
   const room = getRoom(code);
   if (!room) return null;
-  if (room.hostId !== hostId) return null;
+  // Check if player is host (by hostId OR isHost flag)
+  const isHost = room.hostId === hostId || room.players.some(p => p.id === hostId && p.isHost);
+  if (!isHost) return null;
   if (room.players.length < 2) return null;
   if (!room.selectedGame) return null;
 
