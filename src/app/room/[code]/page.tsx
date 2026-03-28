@@ -27,15 +27,8 @@ function PlayerCard({ player, isCurrentUser }: { player: Player; isCurrentUser: 
             <CrownIcon className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
           )}
         </div>
-        <span className={`text-xs ${player.isReady ? 'text-emerald-400' : 'text-white/30'}`}>
-          {player.isReady ? 'Ready' : 'Not ready'}
-        </span>
+        <span className="text-xs text-emerald-400">In game</span>
       </div>
-      {player.isReady && (
-        <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
-          <CheckIcon className="w-3.5 h-3.5 text-emerald-400" />
-        </div>
-      )}
     </div>
   );
 }
@@ -90,13 +83,13 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const [copied, setCopied] = useState(false);
   const [showGames, setShowGames] = useState(false);
 
-  // Store session snapshot on mount — don't re-read from localStorage
+  // Snapshot session on mount — don't re-read from localStorage
   // (other tabs may overwrite it with their own playerId)
   const [session] = useState(() => typeof window !== 'undefined' ? getSession() : null);
   const currentPlayer = room?.players.find(p => p.id === session?.playerId);
   const isHost = currentPlayer?.isHost || false;
-  const readyCount = room?.players.filter(p => p.isReady).length || 0;
-  const canStart = isHost && readyCount >= 2 && room?.selectedGame;
+  const playerCount = room?.players.length || 0;
+  const canStart = isHost && playerCount >= 2 && room?.selectedGame;
 
   const fetchRoom = useCallback(async () => {
     try {
@@ -114,20 +107,9 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   useEffect(() => {
     fetchRoom();
-    const interval = setInterval(fetchRoom, 2000); // Poll every 2s
+    const interval = setInterval(fetchRoom, 2000);
     return () => clearInterval(interval);
   }, [fetchRoom]);
-
-  async function toggleReady() {
-    if (!session) return;
-    const newReady = !currentPlayer?.isReady;
-    await fetch(`/api/rooms/${params.code}/ready`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ playerId: session.playerId, ready: newReady }),
-    });
-    fetchRoom();
-  }
 
   async function selectGame(gameId: string) {
     if (!isHost) return;
@@ -208,15 +190,19 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           )}
         </div>
 
+        {/* Share hint */}
+        {playerCount < 2 && (
+          <div className="text-center mb-4 glass rounded-xl p-3">
+            <p className="text-white/40 text-sm">Share the code with friends to join!</p>
+          </div>
+        )}
+
         {/* Players list */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-white/50 font-body">
-              Players ({room.players.length})
+              Players ({playerCount})
             </h2>
-            <span className="text-xs text-white/30">
-              {readyCount} ready
-            </span>
           </div>
           <div className="space-y-2">
             {room.players.map((player) => (
@@ -294,20 +280,6 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             </button>
           )}
 
-          {!isHost && (
-            <button
-              onClick={toggleReady}
-              className={`w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
-                transition-all duration-200 active:scale-[0.98]
-                ${currentPlayer?.isReady
-                  ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30'
-                  : 'bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white shadow-lg shadow-purple-500/25'
-                }`}
-            >
-              {currentPlayer?.isReady ? 'Ready!' : 'Ready Up'}
-            </button>
-          )}
-
           {isHost && (
             <button
               disabled={!canStart}
@@ -317,8 +289,19 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 disabled:opacity-30 disabled:cursor-not-allowed
                 active:scale-[0.98] transition-all duration-200"
             >
-              {canStart ? 'Start Game' : `Waiting for players... (${readyCount}/2 ready)`}
+              {canStart
+                ? 'Start Game!'
+                : playerCount < 2
+                  ? `Waiting for players... (${playerCount}/2)`
+                  : 'Pick a game to start'
+              }
             </button>
+          )}
+
+          {!isHost && (
+            <div className="text-center py-3">
+              <p className="text-white/30 text-sm">Waiting for host to start...</p>
+            </div>
           )}
 
           <button
