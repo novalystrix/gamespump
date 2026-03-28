@@ -21,6 +21,7 @@ export interface TriviaAnswer {
 }
 
 export interface TriviaGameState {
+  type: 'trivia-clash';
   currentQuestion: number;
   questions: TriviaQuestion[];
   answers: Record<string, TriviaAnswer>; // playerId -> answer for current question
@@ -28,6 +29,70 @@ export interface TriviaGameState {
   questionStartedAt: number;
   phase: 'question' | 'results' | 'leaderboard';
 }
+
+// Memory Match types
+export interface MemoryCard {
+  id: number;
+  symbol: string;
+  flipped: boolean;
+  matched: boolean;
+  matchedBy: string | null;
+}
+
+export interface MemoryMatchGameState {
+  type: 'memory-match';
+  board: MemoryCard[];
+  currentPlayerId: string;
+  turnPhase: 'first-pick' | 'second-pick' | 'showing-result';
+  firstPick: number | null;
+  secondPick: number | null;
+  scores: Record<string, number>;
+  phase: 'playing' | 'leaderboard';
+  showingResultUntil: number | null; // timestamp when result display ends
+}
+
+// This or That types
+export interface ThisOrThatRound {
+  question: string;
+  optionA: string;
+  optionB: string;
+  category: string;
+}
+
+export interface ThisOrThatGameState {
+  type: 'this-or-that';
+  currentRound: number;
+  rounds: ThisOrThatRound[];
+  answers: Record<string, 'A' | 'B'>;
+  scores: Record<string, number>;
+  roundStartedAt: number;
+  phase: 'voting' | 'results' | 'leaderboard';
+}
+
+// Speed Math types
+export interface MathQuestion {
+  problem: string;
+  options: number[];
+  correctIndex: number;
+  difficulty: string;
+}
+
+export interface SpeedMathAnswer {
+  answerIndex: number;
+  answeredAt: number;
+}
+
+export interface SpeedMathGameState {
+  type: 'speed-math';
+  currentQuestion: number;
+  questions: MathQuestion[];
+  answers: Record<string, SpeedMathAnswer>;
+  scores: Record<string, number>;
+  questionStartedAt: number;
+  phase: 'question' | 'results' | 'leaderboard';
+}
+
+export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState;
 
 export interface Room {
   code: string;
@@ -37,7 +102,7 @@ export interface Room {
   status: 'waiting' | 'playing' | 'finished';
   createdAt: number;
   lastActivity: number;
-  gameState?: TriviaGameState;
+  gameState?: GameState;
 }
 
 export interface GameInfo {
@@ -110,5 +175,35 @@ export const GAMES: GameInfo[] = [
     durationMinutes: '3-5',
     icon: 'brain',
     color: 'from-amber-500 to-orange-500',
+  },
+  {
+    id: 'memory-match',
+    name: 'Memory Match',
+    description: 'Flip cards and find matching pairs. Best memory wins!',
+    minPlayers: 2,
+    maxPlayers: 4,
+    durationMinutes: '3-5',
+    icon: 'grid',
+    color: 'from-emerald-500 to-teal-500',
+  },
+  {
+    id: 'this-or-that',
+    name: 'This or That',
+    description: 'Pick between two options. Match the majority to score!',
+    minPlayers: 2,
+    maxPlayers: 8,
+    durationMinutes: '3-5',
+    icon: 'split',
+    color: 'from-pink-500 to-rose-500',
+  },
+  {
+    id: 'speed-math',
+    name: 'Speed Math',
+    description: 'Race to solve math problems. Fastest correct answer wins!',
+    minPlayers: 2,
+    maxPlayers: 6,
+    durationMinutes: '3-5',
+    icon: 'calculator',
+    color: 'from-blue-500 to-indigo-500',
   },
 ];

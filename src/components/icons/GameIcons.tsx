@@ -109,8 +109,49 @@ export function SparkleIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+export function GridIcon({ className = "w-8 h-8" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  );
+}
+
+export function SplitIcon({ className = "w-8 h-8" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2v20" />
+      <path d="M5 8l3-3 3 3" />
+      <path d="M13 16l3 3 3-3" />
+      <circle cx="7" cy="12" r="2" />
+      <circle cx="17" cy="12" r="2" />
+    </svg>
+  );
+}
+
+export function CalculatorIcon({ className = "w-8 h-8" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <rect x="7" y="5" width="10" height="4" rx="1" />
+      <circle cx="8.5" cy="13" r="0.5" fill="currentColor" />
+      <circle cx="12" cy="13" r="0.5" fill="currentColor" />
+      <circle cx="15.5" cy="13" r="0.5" fill="currentColor" />
+      <circle cx="8.5" cy="17" r="0.5" fill="currentColor" />
+      <circle cx="12" cy="17" r="0.5" fill="currentColor" />
+      <circle cx="15.5" cy="17" r="0.5" fill="currentColor" />
+    </svg>
+  );
+}
+
 export const gameIconMap: Record<string, React.FC<{ className?: string }>> = {
   pencil: PencilIcon,
   text: TextIcon,
   brain: BrainIcon,
+  grid: GridIcon,
+  split: SplitIcon,
+  calculator: CalculatorIcon,
 };

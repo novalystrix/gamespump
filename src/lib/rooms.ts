@@ -1,8 +1,12 @@
-import { Room, Player, TriviaGameState } from './types';
+import { Room, Player, TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, GameState } from './types';
 import { getShuffledQuestions } from './trivia-questions';
+import { getShuffledThisOrThatQuestions } from './this-or-that-questions';
+import { generateMathQuestions } from './math-questions';
 
 // In-memory room store (server-side only)
 const rooms = new Map<string, Room>();
+
+const MEMORY_SYMBOLS = ['star', 'heart', 'diamond', 'circle', 'triangle', 'square', 'moon', 'sun'];
 
 function generateCode(): string {
   let code: string;
@@ -19,6 +23,15 @@ function cleanExpiredRooms() {
       rooms.delete(code);
     }
   });
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 export function createRoom(hostId: string): Room {
@@ -100,6 +113,300 @@ export function setPlayerReady(code: string, playerId: string, ready: boolean): 
   return room;
 }
 
+// ===== MEMORY MATCH LOGIC =====
+
+function initMemoryMatch(room: Room): MemoryMatchGameState {
+  const pairs = shuffle(MEMORY_SYMBOLS);
+  const cards = shuffle([...pairs, ...pairs].map((symbol, i) => ({
+    id: i,
+    symbol,
+    flipped: false,
+    matched: false,
+    matchedBy: null as string | null,
+  })));
+
+  const scores: Record<string, number> = {};
+  room.players.forEach(p => { scores[p.id] = 0; });
+
+  return {
+    type: 'memory-match',
+    board: cards,
+    currentPlayerId: room.players[0].id,
+    turnPhase: 'first-pick',
+    firstPick: null,
+    secondPick: null,
+    scores,
+    phase: 'playing',
+    showingResultUntil: null,
+  };
+}
+
+export function flipCard(code: string, playerId: string, cardIndex: number): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'memory-match') return null;
+  
+  const gs = room.gameState as MemoryMatchGameState;
+  if (gs.phase !== 'playing') return null;
+  if (gs.currentPlayerId !== playerId) return null;
+  if (gs.turnPhase === 'showing-result') return null;
+  if (cardIndex < 0 || cardIndex >= gs.board.length) return null;
+  
+  const card = gs.board[cardIndex];
+  if (card.flipped || card.matched) return null;
+
+  if (gs.turnPhase === 'first-pick') {
+    gs.board[cardIndex].flipped = true;
+    gs.firstPick = cardIndex;
+    gs.turnPhase = 'second-pick';
+  } else if (gs.turnPhase === 'second-pick') {
+    gs.board[cardIndex].flipped = true;
+    gs.secondPick = cardIndex;
+    gs.turnPhase = 'showing-result';
+    gs.showingResultUntil = Date.now() + 1500;
+
+    const firstCard = gs.board[gs.firstPick!];
+    const secondCard = gs.board[cardIndex];
+
+    if (firstCard.symbol === secondCard.symbol) {
+      // Match found
+      firstCard.matched = true;
+      firstCard.matchedBy = playerId;
+      secondCard.matched = true;
+      secondCard.matchedBy = playerId;
+      gs.scores[playerId] = (gs.scores[playerId] || 0) + 1;
+    }
+  }
+
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function advanceMemoryTurn(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'memory-match') return null;
+
+  const gs = room.gameState as MemoryMatchGameState;
+  if (gs.turnPhase !== 'showing-result') return null;
+
+  const firstCard = gs.board[gs.firstPick!];
+  const secondCard = gs.board[gs.secondPick!];
+  const wasMatch = firstCard.matched;
+
+  if (!wasMatch) {
+    // Flip cards back
+    firstCard.flipped = false;
+    secondCard.flipped = false;
+  }
+
+  gs.firstPick = null;
+  gs.secondPick = null;
+
+  // Check if game is over
+  const allMatched = gs.board.every(c => c.matched);
+  if (allMatched) {
+    gs.phase = 'leaderboard';
+    room.status = 'finished';
+  } else if (wasMatch) {
+    // Same player gets another turn
+    gs.turnPhase = 'first-pick';
+  } else {
+    // Next player
+    const playerIds = room.players.map(p => p.id);
+    const currentIdx = playerIds.indexOf(gs.currentPlayerId);
+    gs.currentPlayerId = playerIds[(currentIdx + 1) % playerIds.length];
+    gs.turnPhase = 'first-pick';
+  }
+
+  gs.showingResultUntil = null;
+  room.lastActivity = Date.now();
+  return room;
+}
+
+// ===== THIS OR THAT LOGIC =====
+
+function initThisOrThat(room: Room): ThisOrThatGameState {
+  const rounds = getShuffledThisOrThatQuestions(10);
+  const scores: Record<string, number> = {};
+  room.players.forEach(p => { scores[p.id] = 0; });
+
+  return {
+    type: 'this-or-that',
+    currentRound: 0,
+    rounds,
+    answers: {},
+    scores,
+    roundStartedAt: Date.now(),
+    phase: 'voting',
+  };
+}
+
+export function submitVote(code: string, playerId: string, choice: 'A' | 'B'): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'this-or-that') return null;
+
+  const gs = room.gameState as ThisOrThatGameState;
+  if (gs.phase !== 'voting') return null;
+  if (gs.answers[playerId]) return null; // already voted
+
+  gs.answers[playerId] = choice;
+
+  // Check if all players voted
+  const allVoted = room.players.every(p => gs.answers[p.id]);
+  if (allVoted) {
+    // Calculate scores - majority wins
+    let countA = 0, countB = 0;
+    Object.values(gs.answers).forEach(v => { if (v === 'A') countA++; else countB++; });
+    const majority: 'A' | 'B' = countA >= countB ? 'A' : 'B';
+    
+    // Award points to majority
+    for (const [pid, vote] of Object.entries(gs.answers)) {
+      if (vote === majority) {
+        gs.scores[pid] = (gs.scores[pid] || 0) + 100;
+      }
+    }
+    
+    gs.phase = 'results';
+  }
+
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function forceThisOrThatResults(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'this-or-that') return null;
+
+  const gs = room.gameState as ThisOrThatGameState;
+  if (gs.phase !== 'voting') return null;
+
+  // Calculate with whoever voted
+  let countA = 0, countB = 0;
+  Object.values(gs.answers).forEach(v => { if (v === 'A') countA++; else countB++; });
+  
+  if (countA > 0 || countB > 0) {
+    const majority: 'A' | 'B' = countA >= countB ? 'A' : 'B';
+    for (const [pid, vote] of Object.entries(gs.answers)) {
+      if (vote === majority) {
+        gs.scores[pid] = (gs.scores[pid] || 0) + 100;
+      }
+    }
+  }
+
+  gs.phase = 'results';
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function advanceThisOrThatRound(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'this-or-that') return null;
+
+  const gs = room.gameState as ThisOrThatGameState;
+  const nextRound = gs.currentRound + 1;
+
+  if (nextRound >= gs.rounds.length) {
+    gs.phase = 'leaderboard';
+    room.status = 'finished';
+  } else {
+    gs.currentRound = nextRound;
+    gs.answers = {};
+    gs.roundStartedAt = Date.now();
+    gs.phase = 'voting';
+  }
+
+  room.lastActivity = Date.now();
+  return room;
+}
+
+// ===== SPEED MATH LOGIC =====
+
+function initSpeedMath(room: Room): SpeedMathGameState {
+  const questions = generateMathQuestions(15);
+  const scores: Record<string, number> = {};
+  room.players.forEach(p => { scores[p.id] = 0; });
+
+  return {
+    type: 'speed-math',
+    currentQuestion: 0,
+    questions,
+    answers: {},
+    scores,
+    questionStartedAt: Date.now(),
+    phase: 'question',
+  };
+}
+
+export function submitMathAnswer(code: string, playerId: string, questionIndex: number, answerIndex: number): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'speed-math') return null;
+
+  const gs = room.gameState as SpeedMathGameState;
+  if (gs.currentQuestion !== questionIndex) return null;
+  if (gs.phase !== 'question') return null;
+  if (gs.answers[playerId]) return null;
+
+  gs.answers[playerId] = {
+    answerIndex,
+    answeredAt: Date.now(),
+  };
+
+  const question = gs.questions[questionIndex];
+  if (answerIndex === question.correctIndex) {
+    // Score based on speed rank
+    const correctAnswers = Object.entries(gs.answers)
+      .filter(([, a]) => a.answerIndex === question.correctIndex)
+      .sort((a, b) => a[1].answeredAt - b[1].answeredAt);
+    
+    const rank = correctAnswers.findIndex(([pid]) => pid === playerId);
+    const points = rank === 0 ? 150 : rank === 1 ? 100 : rank === 2 ? 50 : 25;
+    gs.scores[playerId] = (gs.scores[playerId] || 0) + points;
+  } else {
+    // Wrong answer penalty
+    gs.scores[playerId] = Math.max(0, (gs.scores[playerId] || 0) - 25);
+  }
+
+  // Check if all players answered
+  const allAnswered = room.players.every(p => gs.answers[p.id]);
+  if (allAnswered) {
+    gs.phase = 'results';
+  }
+
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function advanceMathQuestion(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'speed-math') return null;
+
+  const gs = room.gameState as SpeedMathGameState;
+  const nextQ = gs.currentQuestion + 1;
+
+  if (nextQ >= gs.questions.length) {
+    gs.phase = 'leaderboard';
+    room.status = 'finished';
+  } else {
+    gs.currentQuestion = nextQ;
+    gs.answers = {};
+    gs.questionStartedAt = Date.now();
+    gs.phase = 'question';
+  }
+
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function forceMathResults(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'speed-math') return null;
+  if (room.gameState.phase !== 'question') return null;
+  room.gameState.phase = 'results';
+  room.lastActivity = Date.now();
+  return room;
+}
+
+// ===== COMMON =====
+
 export function startGame(code: string, hostId: string): Room | null {
   const room = getRoom(code);
   if (!room) return null;
@@ -109,19 +416,39 @@ export function startGame(code: string, hostId: string): Room | null {
   if (room.players.length < 2) return null;
   if (!room.selectedGame) return null;
 
-  const questions = getShuffledQuestions(10);
-  const scores: Record<string, number> = {};
-  room.players.forEach(p => { scores[p.id] = 0; });
+  let gameState: GameState;
+
+  switch (room.selectedGame) {
+    case 'trivia-clash': {
+      const questions = getShuffledQuestions(10);
+      const scores: Record<string, number> = {};
+      room.players.forEach(p => { scores[p.id] = 0; });
+      gameState = {
+        type: 'trivia-clash',
+        currentQuestion: 0,
+        questions,
+        answers: {},
+        scores,
+        questionStartedAt: Date.now(),
+        phase: 'question',
+      };
+      break;
+    }
+    case 'memory-match':
+      gameState = initMemoryMatch(room);
+      break;
+    case 'this-or-that':
+      gameState = initThisOrThat(room);
+      break;
+    case 'speed-math':
+      gameState = initSpeedMath(room);
+      break;
+    default:
+      return null;
+  }
 
   room.status = 'playing';
-  room.gameState = {
-    currentQuestion: 0,
-    questions,
-    answers: {},
-    scores,
-    questionStartedAt: Date.now(),
-    phase: 'question',
-  };
+  room.gameState = gameState;
   room.lastActivity = Date.now();
   return room;
 }
@@ -129,27 +456,30 @@ export function startGame(code: string, hostId: string): Room | null {
 export function submitAnswer(code: string, playerId: string, questionIndex: number, answerIndex: number): Room | null {
   const room = getRoom(code);
   if (!room || !room.gameState) return null;
-  if (room.gameState.currentQuestion !== questionIndex) return null;
-  if (room.gameState.phase !== 'question') return null;
-  if (room.gameState.answers[playerId]) return null; // already answered
+  
+  // Handle trivia-clash
+  if (room.gameState.type !== 'trivia-clash') return null;
+  const gs = room.gameState as TriviaGameState;
+  
+  if (gs.currentQuestion !== questionIndex) return null;
+  if (gs.phase !== 'question') return null;
+  if (gs.answers[playerId]) return null;
 
-  room.gameState.answers[playerId] = {
+  gs.answers[playerId] = {
     answerIndex,
     answeredAt: Date.now(),
   };
 
-  // Calculate score if correct
-  const question = room.gameState.questions[questionIndex];
+  const question = gs.questions[questionIndex];
   if (answerIndex === question.correctIndex) {
-    const elapsed = Date.now() - room.gameState.questionStartedAt;
+    const elapsed = Date.now() - gs.questionStartedAt;
     const speedBonus = Math.max(0, Math.round(50 * (1 - elapsed / 15000)));
-    room.gameState.scores[playerId] = (room.gameState.scores[playerId] || 0) + 100 + speedBonus;
+    gs.scores[playerId] = (gs.scores[playerId] || 0) + 100 + speedBonus;
   }
 
-  // Check if all players have answered
-  const allAnswered = room.players.every(p => room.gameState!.answers[p.id]);
+  const allAnswered = room.players.every(p => gs.answers[p.id]);
   if (allAnswered) {
-    room.gameState.phase = 'results';
+    gs.phase = 'results';
   }
 
   room.lastActivity = Date.now();
@@ -159,8 +489,10 @@ export function submitAnswer(code: string, playerId: string, questionIndex: numb
 export function advanceQuestion(code: string): Room | null {
   const room = getRoom(code);
   if (!room || !room.gameState) return null;
+  
+  if (room.gameState.type !== 'trivia-clash') return null;
+  const gs = room.gameState as TriviaGameState;
 
-  const gs = room.gameState;
   const nextQ = gs.currentQuestion + 1;
 
   if (nextQ >= gs.questions.length) {
@@ -180,8 +512,12 @@ export function advanceQuestion(code: string): Room | null {
 export function forceResults(code: string): Room | null {
   const room = getRoom(code);
   if (!room || !room.gameState) return null;
-  if (room.gameState.phase !== 'question') return null;
-  room.gameState.phase = 'results';
+  
+  if (room.gameState.type === 'trivia-clash') {
+    if (room.gameState.phase !== 'question') return null;
+    room.gameState.phase = 'results';
+  }
+  
   room.lastActivity = Date.now();
   return room;
 }

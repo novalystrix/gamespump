@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getRoom } from '@/lib/rooms';
+import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState } from '@/lib/types';
 
 export async function GET(
   _request: Request,
@@ -16,23 +17,98 @@ export async function GET(
     }
 
     const gs = room.gameState;
-    const currentQ = gs.questions[gs.currentQuestion];
 
-    // Don't send correct answer during question phase
-    const safeQuestion = gs.phase === 'question'
-      ? { question: currentQ.question, options: currentQ.options, category: currentQ.category }
-      : { question: currentQ.question, options: currentQ.options, category: currentQ.category, correctIndex: currentQ.correctIndex };
+    switch (gs.type) {
+      case 'trivia-clash': {
+        const tgs = gs as TriviaGameState;
+        const currentQ = tgs.questions[tgs.currentQuestion];
+        const safeQuestion = tgs.phase === 'question'
+          ? { question: currentQ.question, options: currentQ.options, category: currentQ.category }
+          : { question: currentQ.question, options: currentQ.options, category: currentQ.category, correctIndex: currentQ.correctIndex };
 
-    return NextResponse.json({
-      phase: gs.phase,
-      currentQuestion: gs.currentQuestion,
-      totalQuestions: gs.questions.length,
-      question: safeQuestion,
-      answers: gs.phase === 'question' ? Object.keys(gs.answers) : gs.answers,
-      scores: gs.scores,
-      questionStartedAt: gs.questionStartedAt,
-      players: room.players,
-    });
+        return NextResponse.json({
+          gameType: 'trivia-clash',
+          phase: tgs.phase,
+          currentQuestion: tgs.currentQuestion,
+          totalQuestions: tgs.questions.length,
+          question: safeQuestion,
+          answers: tgs.phase === 'question' ? Object.keys(tgs.answers) : tgs.answers,
+          scores: tgs.scores,
+          questionStartedAt: tgs.questionStartedAt,
+          players: room.players,
+        });
+      }
+
+      case 'memory-match': {
+        const mgs = gs as MemoryMatchGameState;
+        // Hide unflipped card symbols for fair play
+        const safeBoard = mgs.board.map(card => ({
+          id: card.id,
+          symbol: (card.flipped || card.matched) ? card.symbol : null,
+          flipped: card.flipped,
+          matched: card.matched,
+          matchedBy: card.matchedBy,
+        }));
+
+        return NextResponse.json({
+          gameType: 'memory-match',
+          board: safeBoard,
+          currentPlayerId: mgs.currentPlayerId,
+          turnPhase: mgs.turnPhase,
+          firstPick: mgs.firstPick,
+          secondPick: mgs.secondPick,
+          scores: mgs.scores,
+          phase: mgs.phase,
+          showingResultUntil: mgs.showingResultUntil,
+          players: room.players,
+        });
+      }
+
+      case 'this-or-that': {
+        const tgs = gs as ThisOrThatGameState;
+        const currentRound = tgs.rounds[tgs.currentRound];
+
+        return NextResponse.json({
+          gameType: 'this-or-that',
+          phase: tgs.phase,
+          currentRound: tgs.currentRound,
+          totalRounds: tgs.rounds.length,
+          round: {
+            question: currentRound.question,
+            optionA: currentRound.optionA,
+            optionB: currentRound.optionB,
+            category: currentRound.category,
+          },
+          answers: tgs.phase === 'voting' ? Object.keys(tgs.answers) : tgs.answers,
+          scores: tgs.scores,
+          roundStartedAt: tgs.roundStartedAt,
+          players: room.players,
+        });
+      }
+
+      case 'speed-math': {
+        const sgs = gs as SpeedMathGameState;
+        const currentQ = sgs.questions[sgs.currentQuestion];
+        const safeQuestion = sgs.phase === 'question'
+          ? { problem: currentQ.problem, options: currentQ.options, difficulty: currentQ.difficulty }
+          : { problem: currentQ.problem, options: currentQ.options, difficulty: currentQ.difficulty, correctIndex: currentQ.correctIndex };
+
+        return NextResponse.json({
+          gameType: 'speed-math',
+          phase: sgs.phase,
+          currentQuestion: sgs.currentQuestion,
+          totalQuestions: sgs.questions.length,
+          question: safeQuestion,
+          answers: sgs.phase === 'question' ? Object.keys(sgs.answers) : sgs.answers,
+          scores: sgs.scores,
+          questionStartedAt: sgs.questionStartedAt,
+          players: room.players,
+        });
+      }
+
+      default:
+        return NextResponse.json({ error: 'Unknown game type' }, { status: 400 });
+    }
   } catch {
     return NextResponse.json({ error: 'Failed to get game state' }, { status: 500 });
   }
