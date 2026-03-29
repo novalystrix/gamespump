@@ -8,79 +8,26 @@ import { GamepadIcon, SparkleIcon } from '@/components/icons/GameIcons';
 function HeroIllustration() {
   return (
     <div className="relative w-64 h-64 mx-auto mb-8">
-      {/* Floating cute animals */}
       <div className="relative w-full h-full">
         {/* Center bunny */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 animate-float">
-          <svg width="80" height="80" viewBox="0 0 48 48">
-            <ellipse cx="16" cy="10" rx="5" ry="10" fill="#a855f7" />
-            <ellipse cx="32" cy="10" rx="5" ry="10" fill="#a855f7" />
-            <ellipse cx="16" cy="10" rx="3" ry="7" fill="white" opacity="0.3" />
-            <ellipse cx="32" cy="10" rx="3" ry="7" fill="white" opacity="0.3" />
-            <circle cx="24" cy="28" r="16" fill="#a855f7" />
-            <circle cx="24" cy="28" r="16" fill="white" opacity="0.1" />
-            <circle cx="18" cy="26" r="2.5" fill="white" />
-            <circle cx="30" cy="26" r="2.5" fill="white" />
-            <circle cx="18" cy="26" r="1.5" fill="#1a1a2e" />
-            <circle cx="30" cy="26" r="1.5" fill="#1a1a2e" />
-            <ellipse cx="24" cy="31" rx="2" ry="1.5" fill="#f8a4c8" />
-            <circle cx="15" cy="31" r="3" fill="#f8a4c8" opacity="0.3" />
-            <circle cx="33" cy="31" r="3" fill="#f8a4c8" opacity="0.3" />
-          </svg>
+          <img src="/images/avatars/bunny.png" alt="Bunny" className="w-20 h-20 rounded-full object-cover shadow-lg shadow-purple-500/30" />
         </div>
         {/* Top-left kitty */}
         <div className="absolute left-2 top-4 animate-float-delayed">
-          <svg width="48" height="48" viewBox="0 0 48 48">
-            <polygon points="10,18 6,4 18,14" fill="#22d3ee" />
-            <polygon points="38,18 42,4 30,14" fill="#22d3ee" />
-            <circle cx="24" cy="28" r="16" fill="#22d3ee" />
-            <circle cx="24" cy="28" r="16" fill="white" opacity="0.1" />
-            <circle cx="18" cy="26" r="2.5" fill="white" />
-            <circle cx="30" cy="26" r="2.5" fill="white" />
-            <circle cx="18" cy="26.5" r="1.5" fill="#1a1a2e" />
-            <circle cx="30" cy="26.5" r="1.5" fill="#1a1a2e" />
-            <ellipse cx="24" cy="31" rx="1.5" ry="1" fill="#1a1a2e" />
-          </svg>
+          <img src="/images/avatars/kitty.png" alt="Kitty" className="w-12 h-12 rounded-full object-cover shadow-md shadow-cyan-500/20" />
         </div>
         {/* Right fox */}
         <div className="absolute right-0 top-12 animate-float" style={{ animationDelay: '1s' }}>
-          <svg width="44" height="44" viewBox="0 0 48 48">
-            <polygon points="8,18 4,2 18,14" fill="#f97316" />
-            <polygon points="40,18 44,2 30,14" fill="#f97316" />
-            <circle cx="24" cy="28" r="16" fill="#f97316" />
-            <circle cx="24" cy="28" r="16" fill="white" opacity="0.08" />
-            <ellipse cx="24" cy="33" rx="10" ry="8" fill="white" opacity="0.25" />
-            <circle cx="18" cy="26" r="2" fill="white" />
-            <circle cx="30" cy="26" r="2" fill="white" />
-            <circle cx="18" cy="26.5" r="1.5" fill="#1a1a2e" />
-            <circle cx="30" cy="26.5" r="1.5" fill="#1a1a2e" />
-            <circle cx="24" cy="31" r="2" fill="#1a1a2e" />
-          </svg>
+          <img src="/images/avatars/fox.png" alt="Fox" className="w-11 h-11 rounded-full object-cover shadow-md shadow-orange-500/20" />
         </div>
         {/* Bottom-left penguin */}
         <div className="absolute left-6 bottom-4 animate-pulse-glow">
-          <svg width="36" height="36" viewBox="0 0 48 48">
-            <ellipse cx="24" cy="28" rx="16" ry="17" fill="#6366f1" />
-            <ellipse cx="24" cy="32" rx="10" ry="12" fill="white" opacity="0.9" />
-            <circle cx="18" cy="22" r="3" fill="white" />
-            <circle cx="30" cy="22" r="3" fill="white" />
-            <circle cx="18" cy="22.5" r="2" fill="#1a1a2e" />
-            <circle cx="30" cy="22.5" r="2" fill="#1a1a2e" />
-            <polygon points="24,26 20,29 28,29" fill="#f59e0b" />
-          </svg>
+          <img src="/images/avatars/penguin.png" alt="Penguin" className="w-9 h-9 rounded-full object-cover shadow-md shadow-indigo-500/20" />
         </div>
         {/* Bottom-right bear */}
         <div className="absolute right-4 bottom-2 animate-pulse-glow" style={{ animationDelay: '0.5s' }}>
-          <svg width="32" height="32" viewBox="0 0 48 48">
-            <circle cx="10" cy="14" r="6" fill="#ec4899" />
-            <circle cx="38" cy="14" r="6" fill="#ec4899" />
-            <circle cx="24" cy="28" r="16" fill="#ec4899" />
-            <circle cx="24" cy="28" r="16" fill="white" opacity="0.1" />
-            <ellipse cx="24" cy="32" rx="7" ry="5" fill="white" opacity="0.3" />
-            <circle cx="18" cy="26" r="2" fill="#1a1a2e" />
-            <circle cx="30" cy="26" r="2" fill="#1a1a2e" />
-            <ellipse cx="24" cy="30" rx="2.5" ry="2" fill="#1a1a2e" />
-          </svg>
+          <img src="/images/avatars/bear.png" alt="Bear" className="w-8 h-8 rounded-full object-cover shadow-md shadow-pink-500/20" />
         </div>
         {/* Sparkle dots */}
         <div className="absolute left-16 top-0 w-1.5 h-1.5 bg-white rounded-full opacity-60 animate-pulse-glow" />

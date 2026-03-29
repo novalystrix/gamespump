@@ -52,8 +52,17 @@ function GameCard({
           : 'bg-white/[0.03] hover:bg-white/[0.06] active:scale-[0.98]'
         }`}
     >
-      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${game.color} flex items-center justify-center mb-3`}>
-        {Icon && <Icon className="w-6 h-6 text-white" />}
+      <div className="w-full h-28 rounded-xl overflow-hidden mb-3 bg-white/5">
+        <img
+          src={`/images/games/${game.id}.png`}
+          alt={game.name}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            // Fallback to icon if image missing
+            (e.target as HTMLImageElement).style.display = 'none';
+            (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br ${game.color}"><span class="text-3xl text-white/80">🎮</span></div>`;
+          }}
+        />
       </div>
       <h3 className="font-display font-bold text-white text-sm mb-1">{game.name}</h3>
       <p className="text-white/40 text-xs leading-relaxed mb-3">{game.description}</p>
