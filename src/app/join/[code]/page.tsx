@@ -13,7 +13,7 @@ export default function JoinPage({ params }: { params: { code: string } }) {
   const isHost = searchParams.get('host') === 'true';
   
   const [name, setName] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState('crystal');
+  const [selectedAvatar, setSelectedAvatar] = useState('bunny');
   const [selectedColor, setSelectedColor] = useState<string>(PLAYER_COLORS[0]);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');

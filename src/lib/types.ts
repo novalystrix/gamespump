@@ -135,14 +135,14 @@ export const PLAYER_COLORS = [
 ] as const;
 
 export const AVATARS = [
-  { id: 'crystal', name: 'Crystal' },
-  { id: 'orbit', name: 'Orbit' },
-  { id: 'flame', name: 'Flame' },
-  { id: 'bolt', name: 'Bolt' },
-  { id: 'wave', name: 'Wave' },
-  { id: 'prism', name: 'Prism' },
-  { id: 'star', name: 'Star' },
-  { id: 'hexa', name: 'Hexa' },
+  { id: 'bunny', name: 'Bunny' },
+  { id: 'kitty', name: 'Kitty' },
+  { id: 'bear', name: 'Bear' },
+  { id: 'fox', name: 'Fox' },
+  { id: 'panda', name: 'Panda' },
+  { id: 'owl', name: 'Owl' },
+  { id: 'hamster', name: 'Hamster' },
+  { id: 'penguin', name: 'Penguin' },
 ] as const;
 
 export const GAMES: GameInfo[] = [

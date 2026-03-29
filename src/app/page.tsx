@@ -8,49 +8,85 @@ import { GamepadIcon, SparkleIcon } from '@/components/icons/GameIcons';
 function HeroIllustration() {
   return (
     <div className="relative w-64 h-64 mx-auto mb-8">
-      {/* Floating geometric shapes */}
-      <svg viewBox="0 0 256 256" className="w-full h-full">
-        <defs>
-          <linearGradient id="grad1" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#a855f7" />
-            <stop offset="100%" stopColor="#ec4899" />
-          </linearGradient>
-          <linearGradient id="grad2" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#22d3ee" />
-            <stop offset="100%" stopColor="#6366f1" />
-          </linearGradient>
-          <linearGradient id="grad3" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#f97316" />
-            <stop offset="100%" stopColor="#facc15" />
-          </linearGradient>
-        </defs>
-        
-        {/* Central diamond */}
-        <g className="animate-float">
-          <polygon points="128,40 180,128 128,216 76,128" fill="url(#grad1)" opacity="0.9" />
-          <polygon points="128,40 180,128 128,128" fill="white" opacity="0.1" />
-        </g>
-        
-        {/* Orbiting circles */}
-        <g className="animate-float-delayed">
-          <circle cx="60" cy="80" r="20" fill="url(#grad2)" opacity="0.7" />
-          <circle cx="60" cy="80" r="8" fill="white" opacity="0.15" />
-        </g>
-        
-        <g className="animate-float" style={{ animationDelay: '1s' }}>
-          <circle cx="196" cy="100" r="16" fill="url(#grad3)" opacity="0.7" />
-          <circle cx="196" cy="100" r="6" fill="white" opacity="0.15" />
-        </g>
-        
-        {/* Small accent shapes */}
-        <rect x="180" y="180" width="24" height="24" rx="4" fill="#a855f7" opacity="0.4" transform="rotate(45 192 192)" className="animate-pulse-glow" />
-        <polygon points="50,180 62,200 38,200" fill="#22d3ee" opacity="0.4" className="animate-pulse-glow" />
-        
+      {/* Floating cute animals */}
+      <div className="relative w-full h-full">
+        {/* Center bunny */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 animate-float">
+          <svg width="80" height="80" viewBox="0 0 48 48">
+            <ellipse cx="16" cy="10" rx="5" ry="10" fill="#a855f7" />
+            <ellipse cx="32" cy="10" rx="5" ry="10" fill="#a855f7" />
+            <ellipse cx="16" cy="10" rx="3" ry="7" fill="white" opacity="0.3" />
+            <ellipse cx="32" cy="10" rx="3" ry="7" fill="white" opacity="0.3" />
+            <circle cx="24" cy="28" r="16" fill="#a855f7" />
+            <circle cx="24" cy="28" r="16" fill="white" opacity="0.1" />
+            <circle cx="18" cy="26" r="2.5" fill="white" />
+            <circle cx="30" cy="26" r="2.5" fill="white" />
+            <circle cx="18" cy="26" r="1.5" fill="#1a1a2e" />
+            <circle cx="30" cy="26" r="1.5" fill="#1a1a2e" />
+            <ellipse cx="24" cy="31" rx="2" ry="1.5" fill="#f8a4c8" />
+            <circle cx="15" cy="31" r="3" fill="#f8a4c8" opacity="0.3" />
+            <circle cx="33" cy="31" r="3" fill="#f8a4c8" opacity="0.3" />
+          </svg>
+        </div>
+        {/* Top-left kitty */}
+        <div className="absolute left-2 top-4 animate-float-delayed">
+          <svg width="48" height="48" viewBox="0 0 48 48">
+            <polygon points="10,18 6,4 18,14" fill="#22d3ee" />
+            <polygon points="38,18 42,4 30,14" fill="#22d3ee" />
+            <circle cx="24" cy="28" r="16" fill="#22d3ee" />
+            <circle cx="24" cy="28" r="16" fill="white" opacity="0.1" />
+            <circle cx="18" cy="26" r="2.5" fill="white" />
+            <circle cx="30" cy="26" r="2.5" fill="white" />
+            <circle cx="18" cy="26.5" r="1.5" fill="#1a1a2e" />
+            <circle cx="30" cy="26.5" r="1.5" fill="#1a1a2e" />
+            <ellipse cx="24" cy="31" rx="1.5" ry="1" fill="#1a1a2e" />
+          </svg>
+        </div>
+        {/* Right fox */}
+        <div className="absolute right-0 top-12 animate-float" style={{ animationDelay: '1s' }}>
+          <svg width="44" height="44" viewBox="0 0 48 48">
+            <polygon points="8,18 4,2 18,14" fill="#f97316" />
+            <polygon points="40,18 44,2 30,14" fill="#f97316" />
+            <circle cx="24" cy="28" r="16" fill="#f97316" />
+            <circle cx="24" cy="28" r="16" fill="white" opacity="0.08" />
+            <ellipse cx="24" cy="33" rx="10" ry="8" fill="white" opacity="0.25" />
+            <circle cx="18" cy="26" r="2" fill="white" />
+            <circle cx="30" cy="26" r="2" fill="white" />
+            <circle cx="18" cy="26.5" r="1.5" fill="#1a1a2e" />
+            <circle cx="30" cy="26.5" r="1.5" fill="#1a1a2e" />
+            <circle cx="24" cy="31" r="2" fill="#1a1a2e" />
+          </svg>
+        </div>
+        {/* Bottom-left penguin */}
+        <div className="absolute left-6 bottom-4 animate-pulse-glow">
+          <svg width="36" height="36" viewBox="0 0 48 48">
+            <ellipse cx="24" cy="28" rx="16" ry="17" fill="#6366f1" />
+            <ellipse cx="24" cy="32" rx="10" ry="12" fill="white" opacity="0.9" />
+            <circle cx="18" cy="22" r="3" fill="white" />
+            <circle cx="30" cy="22" r="3" fill="white" />
+            <circle cx="18" cy="22.5" r="2" fill="#1a1a2e" />
+            <circle cx="30" cy="22.5" r="2" fill="#1a1a2e" />
+            <polygon points="24,26 20,29 28,29" fill="#f59e0b" />
+          </svg>
+        </div>
+        {/* Bottom-right bear */}
+        <div className="absolute right-4 bottom-2 animate-pulse-glow" style={{ animationDelay: '0.5s' }}>
+          <svg width="32" height="32" viewBox="0 0 48 48">
+            <circle cx="10" cy="14" r="6" fill="#ec4899" />
+            <circle cx="38" cy="14" r="6" fill="#ec4899" />
+            <circle cx="24" cy="28" r="16" fill="#ec4899" />
+            <circle cx="24" cy="28" r="16" fill="white" opacity="0.1" />
+            <ellipse cx="24" cy="32" rx="7" ry="5" fill="white" opacity="0.3" />
+            <circle cx="18" cy="26" r="2" fill="#1a1a2e" />
+            <circle cx="30" cy="26" r="2" fill="#1a1a2e" />
+            <ellipse cx="24" cy="30" rx="2.5" ry="2" fill="#1a1a2e" />
+          </svg>
+        </div>
         {/* Sparkle dots */}
-        <circle cx="100" cy="50" r="3" fill="white" opacity="0.6" className="animate-pulse-glow" />
-        <circle cx="200" cy="60" r="2" fill="white" opacity="0.4" className="animate-pulse-glow" />
-        <circle cx="40" cy="140" r="2.5" fill="white" opacity="0.5" className="animate-pulse-glow" />
-      </svg>
+        <div className="absolute left-16 top-0 w-1.5 h-1.5 bg-white rounded-full opacity-60 animate-pulse-glow" />
+        <div className="absolute right-12 top-6 w-1 h-1 bg-white rounded-full opacity-40 animate-pulse-glow" />
+        <div className="absolute left-0 bottom-16 w-1 h-1 bg-white rounded-full opacity-50 animate-pulse-glow" />
+      </div>
     </div>
   );
 }
