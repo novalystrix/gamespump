@@ -1,4 +1,4 @@
-import { Room, Player, TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, GameState } from './types';
+import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, GameState } from './types';
 import { getShuffledQuestions } from './trivia-questions';
 import { getShuffledThisOrThatQuestions } from './this-or-that-questions';
 import { generateMathQuestions } from './math-questions';
@@ -431,6 +431,7 @@ export function startGame(code: string, hostId: string): Room | null {
         scores,
         questionStartedAt: Date.now(),
         phase: 'question',
+        reactions: [],
       };
       break;
     }
@@ -465,17 +466,29 @@ export function submitAnswer(code: string, playerId: string, questionIndex: numb
   if (gs.phase !== 'question') return null;
   if (gs.answers[playerId]) return null;
 
-  gs.answers[playerId] = {
-    answerIndex,
-    answeredAt: Date.now(),
-  };
+  // Catch-up bonus: 1.5x points if trailing the leader by 3+ points
+  const otherScores = Object.entries(gs.scores)
+    .filter(([id]) => id !== playerId)
+    .map(([, score]) => score);
+  const maxOtherScore = otherScores.length > 0 ? Math.max(...otherScores) : 0;
+  const playerScore = gs.scores[playerId] || 0;
+  const isBehind = maxOtherScore - playerScore >= 3;
 
   const question = gs.questions[questionIndex];
+  const answer: TriviaAnswer = { answerIndex, answeredAt: Date.now() };
+
   if (answerIndex === question.correctIndex) {
     const elapsed = Date.now() - gs.questionStartedAt;
     const speedBonus = Math.max(0, Math.round(50 * (1 - elapsed / 15000)));
-    gs.scores[playerId] = (gs.scores[playerId] || 0) + 100 + speedBonus;
+    let points = 100 + speedBonus;
+    if (isBehind) {
+      points = Math.round(points * 1.5);
+      answer.catchupBonus = true;
+    }
+    gs.scores[playerId] = playerScore + points;
   }
+
+  gs.answers[playerId] = answer;
 
   const allAnswered = room.players.every(p => gs.answers[p.id]);
   if (allAnswered) {
@@ -527,6 +540,19 @@ export function resetToLobby(code: string): Room | null {
   if (!room) return null;
   room.status = 'waiting';
   room.gameState = undefined;
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function addReaction(code: string, playerId: string, emoji: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'trivia-clash') return null;
+  const gs = room.gameState as TriviaGameState;
+
+  const fiveSecsAgo = Date.now() - 5000;
+  gs.reactions = gs.reactions.filter(r => r.at > fiveSecsAgo);
+  gs.reactions.push({ id: `${playerId}_${Date.now()}`, playerId, emoji, at: Date.now() });
+
   room.lastActivity = Date.now();
   return room;
 }

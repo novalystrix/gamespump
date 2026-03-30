@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession } from '@/lib/session';
-import { Player, TriviaAnswer } from '@/lib/types';
+import { Player, TriviaAnswer, TriviaReaction } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CrownIcon } from '@/components/icons/GameIcons';
 
 const QUESTION_TIME = 15; // seconds
+const REACTION_EMOJIS = ['👏', '🔥', '😂', '🤔'];
 const ANSWER_COLORS = [
   { bg: 'bg-blue-500', hover: 'hover:bg-blue-400', ring: 'ring-blue-300', text: 'text-blue-100' },
   { bg: 'bg-emerald-500', hover: 'hover:bg-emerald-400', ring: 'ring-emerald-300', text: 'text-emerald-100' },
@@ -38,8 +39,10 @@ interface GameState {
   scores: Record<string, number>;
   questionStartedAt: number;
   players: Player[];
+  reactions: TriviaReaction[];
 }
 
+// Timer Bar Component
 function TimerBar({ startedAt }: { startedAt: number }) {
   const [remaining, setRemaining] = useState(QUESTION_TIME);
 
@@ -76,15 +79,126 @@ function TimerBar({ startedAt }: { startedAt: number }) {
   );
 }
 
-function PointsPopup({ points }: { points: number }) {
+// Points Popup
+function PointsPopup({ points, catchupBonus }: { points: number; catchupBonus?: boolean }) {
   if (points <= 0) return null;
   return (
-    <div className="animate-points-fly text-2xl font-display font-bold text-emerald-400">
-      +{points}
+    <div className="flex flex-col items-end gap-0.5">
+      <div className="animate-points-fly text-2xl font-display font-bold text-emerald-400">
+        +{points}
+      </div>
+      {catchupBonus && (
+        <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+          Catch-up bonus!
+        </span>
+      )}
     </div>
   );
 }
 
+// Floating Reactions Overlay
+function ReactionsOverlay({
+  reactions,
+  players,
+}: {
+  reactions: TriviaReaction[];
+  players: Player[];
+}) {
+  type VisibleReaction = { id: string; emoji: string; color: string; x: number };
+  const [visible, setVisible] = useState<VisibleReaction[]>([]);
+  const seenIds = useRef<Set<string>>(new Set());
+  const timers = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  useEffect(() => {
+    reactions.forEach(r => {
+      if (seenIds.current.has(r.id)) return;
+      seenIds.current.add(r.id);
+      const player = players.find(p => p.id === r.playerId);
+      const color = player?.color ?? '#a855f7';
+      const x = 10 + Math.random() * 80;
+      setVisible(prev => [...prev, { id: r.id, emoji: r.emoji, color, x }]);
+      const t = setTimeout(() => {
+        setVisible(prev => prev.filter(vr => vr.id !== r.id));
+        timers.current.delete(r.id);
+      }, 2500);
+      timers.current.set(r.id, t);
+    });
+  }, [reactions, players]);
+
+  useEffect(() => {
+    const ts = timers.current;
+    return () => { ts.forEach(t => clearTimeout(t)); };
+  }, []);
+
+  if (visible.length === 0) return null;
+
+  return (
+    <>
+      <style>{`
+        @keyframes reactionFloat {
+          0%   { opacity: 1; transform: translateY(0)    scale(1);   }
+          70%  { opacity: 1; transform: translateY(-40px) scale(1.4); }
+          100% { opacity: 0; transform: translateY(-60px) scale(1.2); }
+        }
+        .reaction-bubble { animation: reactionFloat 2.5s ease-out forwards; }
+      `}</style>
+      <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+        {visible.map(r => (
+          <div
+            key={r.id}
+            className="reaction-bubble absolute bottom-28 text-3xl"
+            style={{ left: `${r.x}%` }}
+          >
+            {r.emoji}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// Emoji Reaction Buttons
+function ReactionButtons({
+  roomCode,
+  playerId,
+}: {
+  roomCode: string;
+  playerId: string;
+}) {
+  const [cooldown, setCooldown] = useState<string | null>(null);
+
+  async function sendReaction(emoji: string) {
+    if (cooldown) return;
+    setCooldown(emoji);
+    setTimeout(() => setCooldown(null), 1500);
+    await fetch(`/api/rooms/${roomCode}/react`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId, emoji }),
+    });
+  }
+
+  return (
+    <div className="flex justify-center gap-3 mt-2">
+      {REACTION_EMOJIS.map(emoji => (
+        <button
+          key={emoji}
+          onClick={() => sendReaction(emoji)}
+          disabled={cooldown === emoji}
+          className={`text-2xl p-2 rounded-xl transition-all duration-150 active:scale-90 ${
+            cooldown === emoji
+              ? 'opacity-40 scale-95'
+              : 'hover:bg-white/10 hover:scale-110'
+          }`}
+        >
+          {emoji}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Results View
 function ResultsView({
   gameState,
   myId,
@@ -137,7 +251,7 @@ function ResultsView({
                 </p>
               </div>
               {pointsGained > 0 && (
-                <PointsPopup points={pointsGained} />
+                <PointsPopup points={pointsGained} catchupBonus={answer?.catchupBonus} />
               )}
               <div className="text-right">
                 <p className="text-sm font-bold text-white">{gameState.scores[player.id] || 0}</p>
@@ -151,20 +265,44 @@ function ResultsView({
   );
 }
 
+// Leaderboard View
 function LeaderboardView({
   gameState,
   myId,
+  isHost,
   roomCode,
   router,
+  session,
 }: {
   gameState: GameState;
   myId: string;
+  isHost: boolean;
   roomCode: string;
   router: ReturnType<typeof useRouter>;
+  session: { playerId: string } | null;
 }) {
+  const [restarting, setRestarting] = useState(false);
+
   const sorted = [...gameState.players].sort(
     (a, b) => (gameState.scores[b.id] || 0) - (gameState.scores[a.id] || 0)
   );
+
+  async function handlePlayAgain() {
+    if (!session || !isHost) return;
+    setRestarting(true);
+    await fetch(`/api/rooms/${roomCode}/restart`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: session.playerId }),
+    });
+    // Game state will update via polling — no redirect needed
+    setRestarting(false);
+  }
+
+  async function handleRematch() {
+    await fetch(`/api/rooms/${roomCode}/reset`, { method: 'POST' });
+    router.push(`/room/${roomCode}`);
+  }
 
   return (
     <div className="animate-slide-up text-center">
@@ -205,7 +343,6 @@ function LeaderboardView({
               }`}
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              {/* Rank */}
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-display font-bold text-sm ${
                 index === 0 ? 'bg-amber-400 text-amber-900' :
                 index === 1 ? 'bg-gray-300 text-gray-700' :
@@ -239,32 +376,45 @@ function LeaderboardView({
       </div>
 
       <div className="space-y-3">
-        <button
-          onClick={async () => {
-            await fetch(`/api/rooms/${roomCode}/reset`, { method: 'POST' });
-            router.push(`/room/${roomCode}`);
-          }}
-          className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
-            bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white
-            shadow-lg shadow-purple-500/25
-            active:scale-[0.98] transition-all duration-200"
-        >
-          Play Again
-        </button>
-        <button
-          onClick={async () => {
-            await fetch(`/api/rooms/${roomCode}/reset`, { method: 'POST' });
-            router.push(`/room/${roomCode}`);
-          }}
-          className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
-        >
-          Back to Lobby
-        </button>
+        {isHost ? (
+          <>
+            <button
+              onClick={handlePlayAgain}
+              disabled={restarting}
+              className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
+                bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white
+                shadow-lg shadow-purple-500/25
+                active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
+            >
+              {restarting ? 'Starting...' : 'Play Again'}
+            </button>
+            <button
+              onClick={handleRematch}
+              className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
+            >
+              Rematch (Back to Lobby)
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
+              bg-white/5 text-white/30 text-center">
+              Waiting for host to restart...
+            </div>
+            <button
+              onClick={() => router.push(`/room/${roomCode}`)}
+              className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
+            >
+              Back to Lobby
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
+// Main Component
 export default function TriviaClashPage({ params }: { params: { code: string } }) {
   const router = useRouter();
   const [session] = useState(() => typeof window !== 'undefined' ? getSession() : null);
@@ -272,8 +422,6 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
   const [myAnswer, setMyAnswer] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [previousScores, setPreviousScores] = useState<Record<string, number>>({});
-  const [showingResults, setShowingResults] = useState(false);
-  const prevPhaseRef = useRef<string>('');
   const prevQuestionRef = useRef<number>(-1);
   const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const timerExpiredRef = useRef(false);
@@ -293,7 +441,6 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
       const data: GameState = await res.json();
 
       setGameState(prev => {
-        // Track phase transitions
         if (prev && prev.phase === 'question' && data.phase === 'results') {
           setPreviousScores(prev.scores);
         }
@@ -302,7 +449,6 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
           timerExpiredRef.current = false;
           prevQuestionRef.current = data.currentQuestion;
         }
-        prevPhaseRef.current = data.phase;
         return data;
       });
     } catch {
@@ -310,14 +456,13 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
     }
   }, [params.code, router]);
 
-  // Poll game state
   useEffect(() => {
     fetchGameState();
     const interval = setInterval(fetchGameState, 1000);
     return () => clearInterval(interval);
   }, [fetchGameState]);
 
-  // Timer expiration - force results
+  // Timer expiration — force results
   useEffect(() => {
     if (!gameState || gameState.phase !== 'question') return;
 
@@ -348,7 +493,7 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
     return () => clearTimeout(timer);
   }, [gameState?.phase, gameState?.currentQuestion, gameState?.questionStartedAt, params.code]);
 
-  // Auto-advance from results to next question
+  // Auto-advance from results to next question after 4 seconds
   useEffect(() => {
     if (!gameState || gameState.phase !== 'results') {
       if (autoAdvanceTimerRef.current) {
@@ -358,7 +503,7 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
       return;
     }
 
-    if (autoAdvanceTimerRef.current) return; // already scheduled
+    if (autoAdvanceTimerRef.current) return;
 
     autoAdvanceTimerRef.current = setTimeout(() => {
       autoAdvanceTimerRef.current = null;
@@ -379,9 +524,7 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
 
   async function submitAnswer(answerIndex: number) {
     if (!session || myAnswer !== null || !gameState || gameState.phase !== 'question') return;
-
     setMyAnswer(answerIndex);
-
     await fetch(`/api/rooms/${params.code}/answer`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -423,6 +566,7 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
   const answeredCount = answeredPlayerIds.length;
   const totalPlayers = gameState.players.length;
   const hasAnswered = myAnswer !== null;
+  const isHost = gameState.players.find(p => p.id === session?.playerId)?.isHost ?? false;
 
   return (
     <main className="min-h-[100dvh] flex flex-col px-6 py-6 relative overflow-hidden">
@@ -432,14 +576,21 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
         <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-fuchsia-600/10 rounded-full blur-3xl" />
       </div>
 
+      {/* Floating emoji reactions */}
+      {gameState.reactions?.length > 0 && (
+        <ReactionsOverlay reactions={gameState.reactions} players={gameState.players} />
+      )}
+
       <div className="relative z-10 w-full max-w-sm mx-auto flex flex-col flex-1">
         {/* Leaderboard phase */}
         {gameState.phase === 'leaderboard' && (
           <LeaderboardView
             gameState={gameState}
             myId={session?.playerId || ''}
+            isHost={isHost}
             roomCode={params.code}
             router={router}
+            session={session}
           />
         )}
 
@@ -532,9 +683,14 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
 
             {/* Waiting message */}
             {gameState.phase === 'question' && hasAnswered && (
-              <div className="text-center animate-pulse">
+              <div className="text-center animate-pulse mb-2">
                 <p className="text-white/40 text-sm">Waiting for others... ({answeredCount}/{totalPlayers})</p>
               </div>
+            )}
+
+            {/* Emoji reactions — shown during question phase */}
+            {gameState.phase === 'question' && session && (
+              <ReactionButtons roomCode={params.code} playerId={session.playerId} />
             )}
 
             {/* Results phase */}

@@ -26,6 +26,8 @@ export async function GET(
           ? { question: currentQ.question, options: currentQ.options, category: currentQ.category }
           : { question: currentQ.question, options: currentQ.options, category: currentQ.category, correctIndex: currentQ.correctIndex };
 
+        const recentReactions = tgs.reactions.filter(r => Date.now() - r.at < 4000);
+
         return NextResponse.json({
           gameType: 'trivia-clash',
           phase: tgs.phase,
@@ -36,6 +38,7 @@ export async function GET(
           scores: tgs.scores,
           questionStartedAt: tgs.questionStartedAt,
           players: room.players,
+          reactions: recentReactions,
         });
       }
 

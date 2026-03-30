@@ -18,6 +18,14 @@ export interface TriviaQuestion {
 export interface TriviaAnswer {
   answerIndex: number;
   answeredAt: number;
+  catchupBonus?: boolean;
+}
+
+export interface TriviaReaction {
+  id: string;
+  playerId: string;
+  emoji: string;
+  at: number;
 }
 
 export interface TriviaGameState {
@@ -28,6 +36,7 @@ export interface TriviaGameState {
   scores: Record<string, number>; // playerId -> total score
   questionStartedAt: number;
   phase: 'question' | 'results' | 'leaderboard';
+  reactions: TriviaReaction[];
 }
 
 // Memory Match types
