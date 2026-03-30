@@ -113,7 +113,23 @@ export interface WordBlitzGameState {
   phase: 'typing' | 'results' | 'leaderboard';
 }
 
-export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState | WordBlitzGameState;
+// Quick Draw types
+export interface QuickDrawGameState {
+  type: 'quick-draw';
+  phase: 'drawing' | 'results' | 'leaderboard';
+  currentRound: number;
+  totalRounds: number;
+  drawerOrder: string[]; // playerIds in drawing order
+  roundWords: string[]; // one word per round (server-side only)
+  wordPrompt: string; // current round word
+  roundStartedAt: number;
+  canvasData: string | null;
+  guesses: Record<string, { guess: string; correct: boolean; guessedAt: number }>;
+  correctGuessers: string[]; // playerIds in order of correct guess
+  scores: Record<string, number>;
+}
+
+export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState | WordBlitzGameState | QuickDrawGameState;
 
 export interface Room {
   code: string;

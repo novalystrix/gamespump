@@ -1,4 +1,4 @@
-import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState } from './types';
+import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState } from './types';
 import { getShuffledQuestions } from './trivia-questions';
 import { getShuffledThisOrThatQuestions } from './this-or-that-questions';
 import { generateMathQuestions } from './math-questions';
@@ -520,6 +520,125 @@ export function advanceWordBlitzRound(code: string): Room | null {
   return room;
 }
 
+// ===== QUICK DRAW LOGIC =====
+
+const QUICK_DRAW_WORDS = [
+  'cat', 'dog', 'house', 'rocket', 'sun', 'moon', 'car', 'tree',
+  'fish', 'bird', 'pizza', 'cake', 'apple', 'banana', 'chair',
+  'table', 'book', 'phone', 'hat', 'star', 'flower', 'cloud',
+  'rain', 'snow', 'fire', 'ice', 'mountain', 'beach', 'ocean',
+  'river', 'bridge', 'door', 'window', 'clock', 'key', 'lamp',
+  'bed', 'cup', 'bowl', 'fork', 'guitar', 'drum', 'piano', 'bus',
+  'train', 'plane', 'boat', 'bike', 'crown', 'sword', 'castle',
+  'dragon', 'robot', 'monster', 'heart', 'diamond', 'arrow', 'flag',
+];
+
+function initQuickDraw(room: Room): QuickDrawGameState {
+  const drawerOrder = shuffle(room.players.map(p => p.id));
+  const roundWords = shuffle([...QUICK_DRAW_WORDS]).slice(0, room.players.length);
+  const scores: Record<string, number> = {};
+  room.players.forEach(p => { scores[p.id] = 0; });
+
+  return {
+    type: 'quick-draw',
+    phase: 'drawing',
+    currentRound: 0,
+    totalRounds: room.players.length,
+    drawerOrder,
+    roundWords,
+    wordPrompt: roundWords[0],
+    roundStartedAt: Date.now(),
+    canvasData: null,
+    guesses: {},
+    correctGuessers: [],
+    scores,
+  };
+}
+
+export function updateQuickDrawCanvas(code: string, playerId: string, canvasData: string): boolean {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'quick-draw') return false;
+  const gs = room.gameState as QuickDrawGameState;
+  if (gs.phase !== 'drawing') return false;
+  if (playerId !== gs.drawerOrder[gs.currentRound]) return false;
+  gs.canvasData = canvasData;
+  room.lastActivity = Date.now();
+  return true;
+}
+
+export function submitQuickDrawGuess(
+  code: string,
+  playerId: string,
+  guess: string
+): { success: boolean; correct: boolean; points: number; error?: string } {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'quick-draw') {
+    return { success: false, correct: false, points: 0, error: 'Room or game not found' };
+  }
+  const gs = room.gameState as QuickDrawGameState;
+  if (gs.phase !== 'drawing') return { success: false, correct: false, points: 0, error: 'Not in drawing phase' };
+
+  const currentDrawerId = gs.drawerOrder[gs.currentRound];
+  if (playerId === currentDrawerId) return { success: false, correct: false, points: 0, error: 'Drawer cannot guess' };
+  if (gs.guesses[playerId]?.correct) return { success: false, correct: false, points: 0, error: 'Already guessed correctly' };
+
+  const correct = guess.trim().toLowerCase() === gs.wordPrompt.toLowerCase();
+
+  gs.guesses[playerId] = { guess: guess.trim(), correct, guessedAt: Date.now() };
+
+  let points = 0;
+  if (correct) {
+    gs.correctGuessers.push(playerId);
+    const rank = gs.correctGuessers.length;
+    points = rank === 1 ? 3 : rank === 2 ? 2 : 1;
+    gs.scores[playerId] = (gs.scores[playerId] || 0) + points;
+    gs.scores[currentDrawerId] = (gs.scores[currentDrawerId] || 0) + 1;
+
+    // End round if all guessers correct
+    const guesserIds = room.players.map(p => p.id).filter(id => id !== currentDrawerId);
+    if (guesserIds.every(id => gs.guesses[id]?.correct)) {
+      gs.phase = 'results';
+    }
+  }
+
+  room.lastActivity = Date.now();
+  return { success: true, correct, points };
+}
+
+export function forceQuickDrawResults(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'quick-draw') return null;
+  const gs = room.gameState as QuickDrawGameState;
+  if (gs.phase !== 'drawing') return null;
+  gs.phase = 'results';
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function advanceQuickDrawRound(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'quick-draw') return null;
+  const gs = room.gameState as QuickDrawGameState;
+  if (gs.phase !== 'results') return null;
+
+  const nextRound = gs.currentRound + 1;
+  if (nextRound >= gs.totalRounds) {
+    gs.phase = 'leaderboard';
+    room.status = 'finished';
+  } else {
+    gs.currentRound = nextRound;
+    gs.wordPrompt = gs.roundWords[nextRound];
+    gs.roundStartedAt = Date.now();
+    gs.canvasData = null;
+    gs.guesses = {};
+    gs.correctGuessers = [];
+    gs.phase = 'drawing';
+  }
+
+  room.lastActivity = Date.now();
+  return room;
+}
+
 // ===== COMMON =====
 
 export function startGame(code: string, hostId: string): Room | null {
@@ -561,6 +680,9 @@ export function startGame(code: string, hostId: string): Room | null {
       break;
     case 'word-blitz':
       gameState = initWordBlitz(room);
+      break;
+    case 'quick-draw':
+      gameState = initQuickDraw(room);
       break;
     default:
       return null;

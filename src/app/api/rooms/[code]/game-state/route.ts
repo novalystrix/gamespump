@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getRoom } from '@/lib/rooms';
-import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState } from '@/lib/types';
+import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, QuickDrawGameState } from '@/lib/types';
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: { code: string } }
 ) {
   try {
@@ -120,6 +120,27 @@ export async function GET(
           roundStartedAt: wgs.roundStartedAt,
           submittedWords: wgs.submittedWords,
           scores: wgs.scores,
+          players: room.players,
+        });
+      }
+
+      case 'quick-draw': {
+        const qgs = gs as QuickDrawGameState;
+        const requestingPlayerId = new URL(request.url).searchParams.get('pid') || '';
+        const currentDrawerId = qgs.drawerOrder[qgs.currentRound];
+        const revealWord = qgs.phase !== 'drawing' || requestingPlayerId === currentDrawerId;
+
+        return NextResponse.json({
+          gameType: 'quick-draw',
+          phase: qgs.phase,
+          currentRound: qgs.currentRound,
+          totalRounds: qgs.totalRounds,
+          currentDrawerId,
+          wordPrompt: revealWord ? qgs.wordPrompt : null,
+          roundStartedAt: qgs.roundStartedAt,
+          canvasData: qgs.canvasData,
+          correctGuessers: qgs.correctGuessers,
+          scores: qgs.scores,
           players: room.players,
         });
       }
