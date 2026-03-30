@@ -16,6 +16,50 @@ const ANSWER_COLORS = [
   { bg: 'bg-rose-500', hover: 'hover:bg-rose-400', ring: 'ring-rose-300', text: 'text-rose-100' },
 ];
 
+// Web Audio API sound effects — generates tones, no audio files needed
+function playSound(name: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const now = ctx.currentTime;
+
+    if (name === 'correct') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, now);
+      osc.frequency.setValueAtTime(659, now + 0.12);
+      osc.frequency.setValueAtTime(784, now + 0.24);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc.start(now); osc.stop(now + 0.55);
+    } else if (name === 'wrong') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.setValueAtTime(160, now + 0.15);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.start(now); osc.stop(now + 0.35);
+    } else if (name === 'reaction') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.start(now); osc.stop(now + 0.12);
+    } else if (name === 'countdown') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(440, now);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      osc.start(now); osc.stop(now + 0.08);
+    }
+  } catch {
+    // AudioContext blocked or unavailable — silently ignore
+  }
+}
+
 const CATEGORY_COLORS: Record<string, string> = {
   'General Knowledge': 'bg-purple-500/20 text-purple-300',
   'Science': 'bg-cyan-500/20 text-cyan-300',
@@ -45,11 +89,18 @@ interface GameState {
 // Timer Bar Component
 function TimerBar({ startedAt }: { startedAt: number }) {
   const [remaining, setRemaining] = useState(QUESTION_TIME);
+  const lastCountdownSecRef = useRef(-1);
 
   useEffect(() => {
     const interval = setInterval(() => {
       const elapsed = (Date.now() - startedAt) / 1000;
-      setRemaining(Math.max(0, QUESTION_TIME - elapsed));
+      const rem = Math.max(0, QUESTION_TIME - elapsed);
+      setRemaining(rem);
+      const remCeil = Math.ceil(rem);
+      if (rem <= 5 && rem > 0 && remCeil !== lastCountdownSecRef.current) {
+        lastCountdownSecRef.current = remCeil;
+        playSound('countdown');
+      }
     }, 50);
     return () => clearInterval(interval);
   }, [startedAt]);
@@ -60,9 +111,19 @@ function TimerBar({ startedAt }: { startedAt: number }) {
 
   return (
     <div className="w-full">
+      <style>{`
+        @keyframes timer-pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.25); }
+        }
+        .animate-timer-pulse {
+          animation: timer-pulse 0.5s ease-in-out infinite;
+          display: inline-block;
+        }
+      `}</style>
       <div className="flex items-center justify-between mb-2">
         <span className={`text-sm font-bold tabular-nums transition-colors duration-300 ${
-          critical ? 'text-red-400' : urgent ? 'text-amber-400' : 'text-white/60'
+          critical ? 'text-red-400 animate-timer-pulse' : urgent ? 'text-amber-400' : 'text-white/60'
         }`}>
           {Math.ceil(remaining)}s
         </span>
@@ -113,6 +174,7 @@ function ReactionsOverlay({
     reactions.forEach(r => {
       if (seenIds.current.has(r.id)) return;
       seenIds.current.add(r.id);
+      playSound('reaction');
       const player = players.find(p => p.id === r.playerId);
       const color = player?.color ?? '#a855f7';
       const x = 10 + Math.random() * 80;
@@ -210,6 +272,14 @@ function ResultsView({
 }) {
   const answers = gameState.answers as Record<string, TriviaAnswer>;
   const correctIndex = gameState.question.correctIndex!;
+
+  useEffect(() => {
+    const myAnswer = answers[myId];
+    if (myAnswer) {
+      playSound(myAnswer.answerIndex === correctIndex ? 'correct' : 'wrong');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="animate-slide-up">
@@ -610,20 +680,25 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
                 {gameState.question.category}
               </span>
               {/* Players answered indicator */}
-              <div className="flex items-center gap-1">
-                {gameState.players.map(p => (
-                  <div
-                    key={p.id}
-                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${
-                      answeredPlayerIds.includes(p.id)
-                        ? 'scale-100 opacity-100'
-                        : 'scale-90 opacity-40'
-                    }`}
-                    style={{ backgroundColor: `${p.color}30` }}
-                  >
-                    <Avatar avatarId={p.avatar} size={16} color={p.color} />
-                  </div>
-                ))}
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-xs font-bold tabular-nums text-white/50">
+                  {answeredCount}/{totalPlayers} ready
+                </span>
+                <div className="flex items-center gap-1">
+                  {gameState.players.map(p => (
+                    <div
+                      key={p.id}
+                      className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${
+                        answeredPlayerIds.includes(p.id)
+                          ? 'scale-100 opacity-100'
+                          : 'scale-90 opacity-40'
+                      }`}
+                      style={{ backgroundColor: `${p.color}30` }}
+                    >
+                      <Avatar avatarId={p.avatar} size={16} color={p.color} />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
