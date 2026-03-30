@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession } from '@/lib/session';
+import { saveGameResult } from '@/lib/gameHistory';
 import { Player } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CrownIcon } from '@/components/icons/GameIcons';
@@ -342,6 +343,18 @@ export default function MemoryMatchPage({ params }: { params: { code: string } }
       }
     };
   }, [gameState?.turnPhase, gameState?.showingResultUntil, params.code]);
+
+  useEffect(() => {
+    if (gameState?.phase === 'leaderboard' && session?.playerId) {
+      saveGameResult({
+        gameType: 'memory-match',
+        roomCode: params.code,
+        score: gameState.scores[session.playerId] ?? 0,
+        date: new Date().toISOString(),
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.phase]);
 
   async function handleFlip(cardIndex: number) {
     if (!session || !gameState) return;

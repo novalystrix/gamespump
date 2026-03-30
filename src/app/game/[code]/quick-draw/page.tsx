@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession } from '@/lib/session';
+import { saveGameResult } from '@/lib/gameHistory';
 import { Player } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CrownIcon } from '@/components/icons/GameIcons';
@@ -738,6 +739,18 @@ export default function QuickDrawPage({ params }: { params: { code: string } }) 
       body: JSON.stringify({ playerId: session.playerId, canvasData: data }),
     });
   }, [params.code, session]);
+
+  useEffect(() => {
+    if (gameState?.phase === 'leaderboard' && session?.playerId) {
+      saveGameResult({
+        gameType: 'quick-draw',
+        roomCode: params.code,
+        score: gameState.scores[session.playerId] ?? 0,
+        date: new Date().toISOString(),
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.phase]);
 
   // ── Guess submit ──────────────────────────────────────────────────────────
 

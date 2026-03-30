@@ -90,6 +90,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const [room, setRoom] = useState<Room | null>(null);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [copiedInvite, setCopiedInvite] = useState(false);
   const [showGames, setShowGames] = useState(false);
 
   // Snapshot session on mount — don't re-read from localStorage
@@ -140,6 +141,13 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     navigator.clipboard.writeText(params.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function copyInvite() {
+    const url = `${window.location.origin}/join/${params.code}`;
+    navigator.clipboard.writeText(url);
+    setCopiedInvite(true);
+    setTimeout(() => setCopiedInvite(false), 2000);
   }
 
   async function leaveRoom() {
@@ -204,12 +212,16 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           )}
         </div>
 
-        {/* Share hint */}
-        {playerCount < 2 && (
-          <div className="text-center mb-4 glass rounded-xl p-3">
-            <p className="text-white/40 text-sm">Share the code with friends to join!</p>
-          </div>
-        )}
+        {/* Copy Invite Link */}
+        <div className="text-center mb-4">
+          <button
+            onClick={copyInvite}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl glass hover:bg-white/10 transition-colors text-sm text-white/60 hover:text-white/80"
+          >
+            <CopyIcon className="w-3.5 h-3.5" />
+            {copiedInvite ? 'Copied!' : 'Copy Invite Link'}
+          </button>
+        </div>
 
         {/* Players list */}
         <div className="mb-6">

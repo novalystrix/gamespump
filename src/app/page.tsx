@@ -1,50 +1,60 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession, generatePlayerId, saveSession } from '@/lib/session';
-import { GamepadIcon, SparkleIcon } from '@/components/icons/GameIcons';
-
-function HeroIllustration() {
-  return (
-    <div className="relative w-64 h-64 mx-auto mb-8">
-      <div className="relative w-full h-full">
-        {/* Center bunny */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 animate-float">
-          <img src="/images/avatars/bunny.png" alt="Bunny" className="w-20 h-20 rounded-full object-cover shadow-lg shadow-purple-500/30" />
-        </div>
-        {/* Top-left kitty */}
-        <div className="absolute left-2 top-4 animate-float-delayed">
-          <img src="/images/avatars/kitty.png" alt="Kitty" className="w-12 h-12 rounded-full object-cover shadow-md shadow-cyan-500/20" />
-        </div>
-        {/* Right fox */}
-        <div className="absolute right-0 top-12 animate-float" style={{ animationDelay: '1s' }}>
-          <img src="/images/avatars/fox.png" alt="Fox" className="w-11 h-11 rounded-full object-cover shadow-md shadow-orange-500/20" />
-        </div>
-        {/* Bottom-left penguin */}
-        <div className="absolute left-6 bottom-4 animate-pulse-glow">
-          <img src="/images/avatars/penguin.png" alt="Penguin" className="w-9 h-9 rounded-full object-cover shadow-md shadow-indigo-500/20" />
-        </div>
-        {/* Bottom-right bear */}
-        <div className="absolute right-4 bottom-2 animate-pulse-glow" style={{ animationDelay: '0.5s' }}>
-          <img src="/images/avatars/bear.png" alt="Bear" className="w-8 h-8 rounded-full object-cover shadow-md shadow-pink-500/20" />
-        </div>
-        {/* Sparkle dots */}
-        <div className="absolute left-16 top-0 w-1.5 h-1.5 bg-white rounded-full opacity-60 animate-pulse-glow" />
-        <div className="absolute right-12 top-6 w-1 h-1 bg-white rounded-full opacity-40 animate-pulse-glow" />
-        <div className="absolute left-0 bottom-16 w-1 h-1 bg-white rounded-full opacity-50 animate-pulse-glow" />
-      </div>
-    </div>
-  );
-}
+import { getGameHistory, GameResult } from '@/lib/gameHistory';
+import { GAMES } from '@/lib/types';
+import { GamepadIcon } from '@/components/icons/GameIcons';
 
 function BackgroundDecor() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden">
-      {/* Gradient orbs */}
       <div className="absolute -top-32 -left-32 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl" />
       <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-fuchsia-600/15 rounded-full blur-3xl" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl" />
+    </div>
+  );
+}
+
+const GAME_NAMES: Record<string, string> = {
+  'trivia-clash': 'Trivia Clash',
+  'word-blitz': 'Word Blitz',
+  'quick-draw': 'Quick Draw',
+  'memory-match': 'Memory Match',
+  'this-or-that': 'This or That',
+  'speed-math': 'Speed Math',
+};
+
+function RecentGames({ history }: { history: GameResult[] }) {
+  if (history.length === 0) return null;
+  return (
+    <div className="mb-6">
+      <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-2">Recent Games</p>
+      <div className="space-y-2">
+        {history.map((r, i) => (
+          <div key={i} className="flex items-center justify-between glass rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
+                <img
+                  src={`/images/games/${r.gameType}.png`}
+                  alt={r.gameType}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-white/80">{GAME_NAMES[r.gameType] ?? r.gameType}</p>
+                <p className="text-xs text-white/30">Room {r.roomCode}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-bold text-purple-300">{r.score} pts</p>
+              <p className="text-xs text-white/25">{new Date(r.date).toLocaleDateString()}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -53,10 +63,16 @@ export default function Home() {
   const router = useRouter();
   const [joinCode, setJoinCode] = useState('');
   const [showJoin, setShowJoin] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState<string | null>(null);
+  const [history, setHistory] = useState<GameResult[]>([]);
 
-  async function handleHost() {
-    setCreating(true);
+  useEffect(() => {
+    setHistory(getGameHistory());
+  }, []);
+
+  async function handleHostGame(gameId: string) {
+    if (creating) return;
+    setCreating(gameId);
     try {
       let session = getSession();
       if (!session) {
@@ -72,12 +88,18 @@ export default function Home() {
       });
       const data = await res.json();
       if (data.code) {
+        // Pre-select the game
+        await fetch(`/api/rooms/${data.code}/game`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameId }),
+        });
         router.push(`/join/${data.code}?host=true`);
       }
     } catch (err) {
       console.error('Failed to create room', err);
     } finally {
-      setCreating(false);
+      setCreating(null);
     }
   }
 
@@ -88,57 +110,33 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-[100dvh] flex flex-col items-center justify-center px-6 py-12 relative">
+    <main className="min-h-[100dvh] flex flex-col items-center px-6 py-10 relative">
       <BackgroundDecor />
-      
+
       <div className="relative z-10 w-full max-w-sm mx-auto page-transition">
-        <HeroIllustration />
-        
-        {/* Logo & title */}
-        <div className="text-center mb-10">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <GamepadIcon className="w-8 h-8 text-purple-400" />
-            <h1 className="text-4xl font-display font-bold text-gradient">
-              GamesPump
-            </h1>
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <GamepadIcon className="w-7 h-7 text-purple-400" />
+            <h1 className="text-3xl font-display font-bold text-gradient">GamesPump</h1>
           </div>
-          <p className="text-white/50 text-sm font-body">
-            No signup. No downloads. Just play.
-          </p>
+          <p className="text-white/40 text-sm font-body">No signup. No downloads. Just play.</p>
         </div>
 
-        {/* Action buttons */}
-        <div className="space-y-3">
-          <button
-            onClick={handleHost}
-            disabled={creating}
-            className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
-              bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white
-              hover:from-purple-400 hover:to-fuchsia-400
-              active:scale-[0.98] transition-all duration-200
-              shadow-lg shadow-purple-500/25
-              disabled:opacity-50 disabled:cursor-not-allowed
-              flex items-center justify-center gap-2"
-          >
-            <SparkleIcon className="w-5 h-5" />
-            {creating ? 'Creating Room...' : 'Host a Game'}
-          </button>
-
+        {/* Join a Game */}
+        <div className="mb-8">
           {!showJoin ? (
             <button
               onClick={() => setShowJoin(true)}
-              className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
-                glass text-white/90
-                hover:bg-white/10
-                active:scale-[0.98] transition-all duration-200"
+              className="w-full py-3 px-6 rounded-2xl font-display font-semibold
+                glass text-white/80 hover:bg-white/10
+                active:scale-[0.98] transition-all duration-200 text-base"
             >
               Join a Game
             </button>
           ) : (
             <div className="glass rounded-2xl p-4 animate-scale-in">
-              <label className="text-sm text-white/50 font-body mb-2 block">
-                Enter room code
-              </label>
+              <label className="text-sm text-white/50 font-body mb-2 block">Enter room code</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -170,10 +168,49 @@ export default function Home() {
           )}
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-white/20 text-xs mt-12 font-body">
-          Party games for everyone
-        </p>
+        {/* Game grid */}
+        <div className="mb-6">
+          <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-3">Host a Game</p>
+          <div className="grid grid-cols-2 gap-3">
+            {GAMES.map((game) => (
+              <button
+                key={game.id}
+                onClick={() => handleHostGame(game.id)}
+                disabled={creating !== null}
+                className={`relative rounded-2xl overflow-hidden text-left transition-all
+                  active:scale-[0.97]
+                  ${creating === game.id ? 'opacity-60' : 'hover:scale-[1.02]'}
+                  disabled:cursor-not-allowed`}
+              >
+                <div className="w-full aspect-[4/3] bg-white/5">
+                  <img
+                    src={`/images/games/${game.id}.png`}
+                    alt={game.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      (e.target as HTMLImageElement).parentElement!.className =
+                        `w-full aspect-[4/3] flex items-center justify-center bg-gradient-to-br ${game.color}`;
+                    }}
+                  />
+                </div>
+                <div className="px-3 py-2 bg-white/[0.04]">
+                  <p className="text-sm font-display font-bold text-white leading-tight">{game.name}</p>
+                  <p className="text-xs text-white/35 mt-0.5">{game.minPlayers}–{game.maxPlayers} players</p>
+                </div>
+                {creating === game.id && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <RecentGames history={history} />
+
+        <p className="text-center text-white/20 text-xs font-body">Party games for everyone</p>
       </div>
     </main>
   );

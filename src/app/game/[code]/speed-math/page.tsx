@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession } from '@/lib/session';
+import { saveGameResult } from '@/lib/gameHistory';
 import { Player, SpeedMathAnswer } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CrownIcon } from '@/components/icons/GameIcons';
@@ -460,6 +461,18 @@ export default function SpeedMathPage({ params }: { params: { code: string } }) 
       }
     };
   }, [gameState?.phase, gameState?.currentQuestion, params.code]);
+
+  useEffect(() => {
+    if (gameState?.phase === 'leaderboard' && session?.playerId) {
+      saveGameResult({
+        gameType: 'speed-math',
+        roomCode: params.code,
+        score: gameState.scores[session.playerId] ?? 0,
+        date: new Date().toISOString(),
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.phase]);
 
   async function submitAnswer(answerIndex: number) {
     if (!session || myAnswer !== null || !gameState || gameState.phase !== 'question') return;
