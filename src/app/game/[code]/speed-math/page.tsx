@@ -9,6 +9,43 @@ import { CrownIcon } from '@/components/icons/GameIcons';
 
 const QUESTION_TIME = 10; // seconds
 
+// Web Audio API sound effects — generates tones, no audio files needed
+function playSound(name: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const now = ctx.currentTime;
+    if (name === 'correct') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, now);
+      osc.frequency.setValueAtTime(659, now + 0.12);
+      osc.frequency.setValueAtTime(784, now + 0.24);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc.start(now); osc.stop(now + 0.55);
+    } else if (name === 'wrong') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.setValueAtTime(160, now + 0.15);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.start(now); osc.stop(now + 0.35);
+    } else if (name === 'countdown') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(440, now);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      osc.start(now); osc.stop(now + 0.08);
+    }
+  } catch {
+    // AudioContext blocked or unavailable — silently ignore
+  }
+}
+
 const DIFFICULTY_COLORS: Record<string, { bg: string; text: string }> = {
   easy: { bg: 'bg-emerald-500/20', text: 'text-emerald-300' },
   medium: { bg: 'bg-amber-500/20', text: 'text-amber-300' },
@@ -41,23 +78,41 @@ interface SpeedMathState {
 
 function TimerBar({ startedAt }: { startedAt: number }) {
   const [remaining, setRemaining] = useState(QUESTION_TIME);
+  const lastCountdownSecRef = useRef(-1);
 
   useEffect(() => {
     const interval = setInterval(() => {
       const elapsed = (Date.now() - startedAt) / 1000;
-      setRemaining(Math.max(0, QUESTION_TIME - elapsed));
+      const rem = Math.max(0, QUESTION_TIME - elapsed);
+      setRemaining(rem);
+      const remCeil = Math.ceil(rem);
+      if (rem <= 5 && rem > 0 && remCeil !== lastCountdownSecRef.current) {
+        lastCountdownSecRef.current = remCeil;
+        playSound('countdown');
+      }
     }, 50);
     return () => clearInterval(interval);
   }, [startedAt]);
 
   const pct = (remaining / QUESTION_TIME) * 100;
-  const urgent = remaining <= 3;
+  const urgent = remaining <= 5;
+  const critical = remaining <= 3;
 
   return (
     <div className="w-full">
+      <style>{`
+        @keyframes timer-pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.25); }
+        }
+        .animate-timer-pulse {
+          animation: timer-pulse 0.5s ease-in-out infinite;
+          display: inline-block;
+        }
+      `}</style>
       <div className="flex items-center justify-between mb-2">
         <span className={`text-sm font-bold tabular-nums transition-colors duration-300 ${
-          urgent ? 'text-red-400' : 'text-white/60'
+          critical ? 'text-red-400 animate-timer-pulse' : urgent ? 'text-amber-400' : 'text-white/60'
         }`}>
           {Math.ceil(remaining)}s
         </span>
@@ -65,7 +120,7 @@ function TimerBar({ startedAt }: { startedAt: number }) {
       <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-100 ease-linear ${
-            urgent ? 'bg-red-500' : 'bg-purple-400'
+            critical ? 'bg-red-500' : urgent ? 'bg-amber-400' : 'bg-purple-400'
           }`}
           style={{ width: `${pct}%` }}
         />
@@ -85,6 +140,14 @@ function ResultsView({
 }) {
   const answers = gameState.answers as Record<string, SpeedMathAnswer>;
   const correctIndex = gameState.question.correctIndex!;
+
+  useEffect(() => {
+    const myAnswer = answers[myId];
+    if (myAnswer) {
+      playSound(myAnswer.answerIndex === correctIndex ? 'correct' : 'wrong');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sort correct answers by speed
   const correctPlayers = Object.entries(answers)
@@ -130,10 +193,10 @@ function ResultsView({
                   {!answer ? 'No answer' : isCorrect ? (speedRank >= 0 && speedRank < 3 ? speedLabels[speedRank] : 'Correct') : 'Wrong'}
                 </p>
               </div>
-              {pointsGained !== 0 && (
-                <span className={`text-sm font-bold ${pointsGained > 0 ? 'text-emerald-400' : 'text-rose-400'} animate-points-fly`}>
-                  {pointsGained > 0 ? '+' : ''}{pointsGained}
-                </span>
+              {pointsGained > 0 && (
+                <div className="animate-points-fly text-2xl font-display font-bold text-emerald-400">
+                  +{pointsGained}
+                </div>
               )}
               <div className="text-right">
                 <p className="text-sm font-bold text-white">{gameState.scores[player.id] || 0}</p>
@@ -150,14 +213,31 @@ function ResultsView({
 function LeaderboardView({
   gameState,
   myId,
+  isHost,
   roomCode,
   router,
+  session,
 }: {
   gameState: SpeedMathState;
   myId: string;
+  isHost: boolean;
   roomCode: string;
   router: ReturnType<typeof useRouter>;
+  session: { playerId: string } | null;
 }) {
+  const [restarting, setRestarting] = useState(false);
+
+  async function handlePlayAgain() {
+    if (!session || !isHost) return;
+    setRestarting(true);
+    await fetch(`/api/rooms/${roomCode}/restart`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: session.playerId }),
+    });
+    setRestarting(false);
+  }
+
   const sorted = [...gameState.players].sort(
     (a, b) => (gameState.scores[b.id] || 0) - (gameState.scores[a.id] || 0)
   );
@@ -229,27 +309,42 @@ function LeaderboardView({
       </div>
 
       <div className="space-y-3">
-        <button
-          onClick={async () => {
-            await fetch(`/api/rooms/${roomCode}/reset`, { method: 'POST' });
-            router.push(`/room/${roomCode}`);
-          }}
-          className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
-            bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white
-            shadow-lg shadow-purple-500/25
-            active:scale-[0.98] transition-all duration-200"
-        >
-          Play Again
-        </button>
-        <button
-          onClick={async () => {
-            await fetch(`/api/rooms/${roomCode}/reset`, { method: 'POST' });
-            router.push(`/room/${roomCode}`);
-          }}
-          className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
-        >
-          Back to Lobby
-        </button>
+        {isHost ? (
+          <>
+            <button
+              onClick={handlePlayAgain}
+              disabled={restarting}
+              className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
+                bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white
+                shadow-lg shadow-purple-500/25
+                active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
+            >
+              {restarting ? 'Starting...' : 'Play Again'}
+            </button>
+            <button
+              onClick={async () => {
+                await fetch(`/api/rooms/${roomCode}/reset`, { method: 'POST' });
+                router.push(`/room/${roomCode}`);
+              }}
+              className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
+            >
+              Back to Lobby
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
+              bg-white/5 text-white/30 text-center">
+              Waiting for host to restart...
+            </div>
+            <button
+              onClick={() => router.push(`/room/${roomCode}`)}
+              className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
+            >
+              Back to Lobby
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -406,6 +501,7 @@ export default function SpeedMathPage({ params }: { params: { code: string } }) 
     ? gameState.answers as string[]
     : Object.keys(gameState.answers);
   const hasAnswered = myAnswer !== null;
+  const isHost = gameState.players.find(p => p.id === session?.playerId)?.isHost ?? false;
   const diffColors = DIFFICULTY_COLORS[gameState.question.difficulty] || DIFFICULTY_COLORS.easy;
 
   return (
@@ -421,8 +517,10 @@ export default function SpeedMathPage({ params }: { params: { code: string } }) 
           <LeaderboardView
             gameState={gameState}
             myId={session?.playerId || ''}
+            isHost={isHost}
             roomCode={params.code}
             router={router}
+            session={session}
           />
         )}
 

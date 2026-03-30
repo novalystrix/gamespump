@@ -89,6 +89,30 @@ function ResultsView({
 
   return (
     <div className="animate-slide-up flex-1 flex flex-col">
+      <style>{`
+        @keyframes option-reveal {
+          0%   { transform: scale(0.88); opacity: 0.6; }
+          55%  { transform: scale(1.1);  opacity: 1; filter: brightness(1.4); }
+          100% { transform: scale(1);   opacity: 1; filter: brightness(1); }
+        }
+        .animate-option-reveal {
+          animation: option-reveal 0.55s ease-out forwards;
+          display: inline-block;
+        }
+        @keyframes winner-bar-glow {
+          0%   { box-shadow: none; }
+          50%  { box-shadow: 0 0 18px 4px rgba(59,130,246,0.55); }
+          100% { box-shadow: 0 0 8px 2px rgba(59,130,246,0.2); }
+        }
+        @keyframes winner-bar-glow-orange {
+          0%   { box-shadow: none; }
+          50%  { box-shadow: 0 0 18px 4px rgba(249,115,22,0.55); }
+          100% { box-shadow: 0 0 8px 2px rgba(249,115,22,0.2); }
+        }
+        .animate-bar-glow-blue   { animation: winner-bar-glow        0.7s ease-out 0.1s forwards; }
+        .animate-bar-glow-orange { animation: winner-bar-glow-orange  0.7s ease-out 0.1s forwards; }
+      `}</style>
+
       {/* Question */}
       <div className="text-center mb-4">
         <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
@@ -102,17 +126,17 @@ function ResultsView({
       {/* Results bar */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <span className={`text-sm font-bold ${majorityIsA ? 'text-blue-400' : 'text-white/40'}`}>
+          <span className={`text-sm font-bold ${majorityIsA ? 'text-blue-400 animate-option-reveal' : 'text-white/40'}`}>
             {gameState.round.optionA}
           </span>
           <span className="flex-1" />
-          <span className={`text-sm font-bold ${!majorityIsA ? 'text-orange-400' : 'text-white/40'}`}>
+          <span className={`text-sm font-bold ${!majorityIsA ? 'text-orange-400 animate-option-reveal' : 'text-white/40'}`}>
             {gameState.round.optionB}
           </span>
         </div>
         <div className="w-full h-10 bg-white/5 rounded-xl overflow-hidden flex">
           <div
-            className="h-full bg-gradient-to-r from-blue-500 to-blue-400 flex items-center justify-center transition-all duration-700"
+            className={`h-full bg-gradient-to-r from-blue-500 to-blue-400 flex items-center justify-center transition-all duration-700 ${majorityIsA ? 'animate-bar-glow-blue' : ''}`}
             style={{ width: `${pctA}%` }}
           >
             {playersA.length > 0 && (
@@ -120,7 +144,7 @@ function ResultsView({
             )}
           </div>
           <div
-            className="h-full bg-gradient-to-r from-orange-400 to-orange-500 flex items-center justify-center transition-all duration-700"
+            className={`h-full bg-gradient-to-r from-orange-400 to-orange-500 flex items-center justify-center transition-all duration-700 ${!majorityIsA ? 'animate-bar-glow-orange' : ''}`}
             style={{ width: `${pctB}%` }}
           >
             {playersB.length > 0 && (
@@ -192,14 +216,31 @@ function ResultsView({
 function LeaderboardView({
   gameState,
   myId,
+  isHost,
   roomCode,
   router,
+  session,
 }: {
   gameState: ThisOrThatState;
   myId: string;
+  isHost: boolean;
   roomCode: string;
   router: ReturnType<typeof useRouter>;
+  session: { playerId: string } | null;
 }) {
+  const [restarting, setRestarting] = useState(false);
+
+  async function handlePlayAgain() {
+    if (!session || !isHost) return;
+    setRestarting(true);
+    await fetch(`/api/rooms/${roomCode}/restart`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: session.playerId }),
+    });
+    setRestarting(false);
+  }
+
   const sorted = [...gameState.players].sort(
     (a, b) => (gameState.scores[b.id] || 0) - (gameState.scores[a.id] || 0)
   );
@@ -255,27 +296,42 @@ function LeaderboardView({
       </div>
 
       <div className="space-y-3">
-        <button
-          onClick={async () => {
-            await fetch(`/api/rooms/${roomCode}/reset`, { method: 'POST' });
-            router.push(`/room/${roomCode}`);
-          }}
-          className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
-            bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white
-            shadow-lg shadow-purple-500/25
-            active:scale-[0.98] transition-all duration-200"
-        >
-          Play Again
-        </button>
-        <button
-          onClick={async () => {
-            await fetch(`/api/rooms/${roomCode}/reset`, { method: 'POST' });
-            router.push(`/room/${roomCode}`);
-          }}
-          className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
-        >
-          Back to Lobby
-        </button>
+        {isHost ? (
+          <>
+            <button
+              onClick={handlePlayAgain}
+              disabled={restarting}
+              className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
+                bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white
+                shadow-lg shadow-purple-500/25
+                active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
+            >
+              {restarting ? 'Starting...' : 'Play Again'}
+            </button>
+            <button
+              onClick={async () => {
+                await fetch(`/api/rooms/${roomCode}/reset`, { method: 'POST' });
+                router.push(`/room/${roomCode}`);
+              }}
+              className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
+            >
+              Back to Lobby
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
+              bg-white/5 text-white/30 text-center">
+              Waiting for host to restart...
+            </div>
+            <button
+              onClick={() => router.push(`/room/${roomCode}`)}
+              className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
+            >
+              Back to Lobby
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -428,6 +484,7 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
     ? gameState.answers as string[]
     : Object.keys(gameState.answers);
   const hasVoted = myVote !== null;
+  const isHost = gameState.players.find(p => p.id === session?.playerId)?.isHost ?? false;
 
   return (
     <main className="min-h-[100dvh] flex flex-col px-6 py-6 relative overflow-hidden">
@@ -442,8 +499,10 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
           <LeaderboardView
             gameState={gameState}
             myId={session?.playerId || ''}
+            isHost={isHost}
             roomCode={params.code}
             router={router}
+            session={session}
           />
         )}
 
