@@ -101,7 +101,19 @@ export interface SpeedMathGameState {
   phase: 'question' | 'results' | 'leaderboard';
 }
 
-export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState;
+// Word Blitz types
+export interface WordBlitzGameState {
+  type: 'word-blitz';
+  currentRound: number;
+  totalRounds: number;
+  letters: string[];
+  roundStartedAt: number;
+  submittedWords: Record<string, string[]>; // playerId -> words submitted this round
+  scores: Record<string, number>;
+  phase: 'typing' | 'results' | 'leaderboard';
+}
+
+export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState | WordBlitzGameState;
 
 export interface Room {
   code: string;

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getRoom } from '@/lib/rooms';
-import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState } from '@/lib/types';
+import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState } from '@/lib/types';
 
 export async function GET(
   _request: Request,
@@ -105,6 +105,21 @@ export async function GET(
           answers: sgs.phase === 'question' ? Object.keys(sgs.answers) : sgs.answers,
           scores: sgs.scores,
           questionStartedAt: sgs.questionStartedAt,
+          players: room.players,
+        });
+      }
+
+      case 'word-blitz': {
+        const wgs = gs as WordBlitzGameState;
+        return NextResponse.json({
+          gameType: 'word-blitz',
+          phase: wgs.phase,
+          currentRound: wgs.currentRound,
+          totalRounds: wgs.totalRounds,
+          letters: wgs.letters,
+          roundStartedAt: wgs.roundStartedAt,
+          submittedWords: wgs.submittedWords,
+          scores: wgs.scores,
           players: room.players,
         });
       }

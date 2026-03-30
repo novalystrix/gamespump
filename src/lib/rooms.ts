@@ -1,4 +1,4 @@
-import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, GameState } from './types';
+import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState } from './types';
 import { getShuffledQuestions } from './trivia-questions';
 import { getShuffledThisOrThatQuestions } from './this-or-that-questions';
 import { generateMathQuestions } from './math-questions';
@@ -405,6 +405,121 @@ export function forceMathResults(code: string): Room | null {
   return room;
 }
 
+// ===== WORD BLITZ LOGIC =====
+
+const WORD_BLITZ_VOWELS = ['A', 'A', 'A', 'E', 'E', 'E', 'E', 'I', 'I', 'I', 'O', 'O', 'U', 'U'];
+const WORD_BLITZ_CONSONANTS = ['B', 'C', 'D', 'D', 'F', 'G', 'H', 'H', 'L', 'L', 'L', 'M', 'M', 'N', 'N', 'N', 'P', 'R', 'R', 'R', 'S', 'S', 'S', 'T', 'T', 'T', 'V', 'W', 'Y'];
+
+function generateWordBlitzLetters(): string[] {
+  const vowelCount = Math.random() < 0.5 ? 2 : 3;
+  const consonantCount = 7 - vowelCount;
+  const vPool = shuffle([...WORD_BLITZ_VOWELS]);
+  const cPool = shuffle([...WORD_BLITZ_CONSONANTS]);
+  return shuffle([...vPool.slice(0, vowelCount), ...cPool.slice(0, consonantCount)]);
+}
+
+export function wordBlitzScore(word: string): number {
+  const len = word.length;
+  if (len < 3) return 0;
+  if (len === 3) return 1;
+  if (len === 4) return 2;
+  if (len === 5) return 4;
+  if (len === 6) return 8;
+  return 16;
+}
+
+function wordUsesLetters(word: string, letters: string[]): boolean {
+  const available = [...letters];
+  for (const ch of word.toUpperCase()) {
+    const idx = available.indexOf(ch);
+    if (idx === -1) return false;
+    available.splice(idx, 1);
+  }
+  return true;
+}
+
+function initWordBlitz(room: Room): WordBlitzGameState {
+  const scores: Record<string, number> = {};
+  const submittedWords: Record<string, string[]> = {};
+  room.players.forEach(p => {
+    scores[p.id] = 0;
+    submittedWords[p.id] = [];
+  });
+  return {
+    type: 'word-blitz',
+    currentRound: 0,
+    totalRounds: 3,
+    letters: generateWordBlitzLetters(),
+    roundStartedAt: Date.now(),
+    submittedWords,
+    scores,
+    phase: 'typing',
+  };
+}
+
+export function submitWordBlitzWord(
+  code: string,
+  playerId: string,
+  word: string,
+  roundIndex: number
+): { success: boolean; pointsGained: number; error?: string } {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'word-blitz') {
+    return { success: false, pointsGained: 0, error: 'Room or game not found' };
+  }
+  const gs = room.gameState as WordBlitzGameState;
+  if (gs.phase !== 'typing') return { success: false, pointsGained: 0, error: 'Not in typing phase' };
+  if (gs.currentRound !== roundIndex) return { success: false, pointsGained: 0, error: 'Wrong round' };
+
+  const upper = word.toUpperCase().trim();
+  if (upper.length < 3) return { success: false, pointsGained: 0, error: 'Too short' };
+  if (!wordUsesLetters(upper, gs.letters)) return { success: false, pointsGained: 0, error: 'Invalid letters' };
+
+  if (!gs.submittedWords[playerId]) gs.submittedWords[playerId] = [];
+  if (gs.submittedWords[playerId].includes(upper)) return { success: false, pointsGained: 0, error: 'Already submitted' };
+
+  const points = wordBlitzScore(upper);
+  gs.submittedWords[playerId].push(upper);
+  gs.scores[playerId] = (gs.scores[playerId] || 0) + points;
+
+  room.lastActivity = Date.now();
+  return { success: true, pointsGained: points };
+}
+
+export function forceWordBlitzResults(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'word-blitz') return null;
+  const gs = room.gameState as WordBlitzGameState;
+  if (gs.phase !== 'typing') return null;
+  gs.phase = 'results';
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function advanceWordBlitzRound(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'word-blitz') return null;
+  const gs = room.gameState as WordBlitzGameState;
+  if (gs.phase !== 'results') return null;
+
+  const nextRound = gs.currentRound + 1;
+  if (nextRound >= gs.totalRounds) {
+    gs.phase = 'leaderboard';
+    room.status = 'finished';
+  } else {
+    gs.currentRound = nextRound;
+    gs.letters = generateWordBlitzLetters();
+    gs.roundStartedAt = Date.now();
+    const submittedWords: Record<string, string[]> = {};
+    room.players.forEach(p => { submittedWords[p.id] = []; });
+    gs.submittedWords = submittedWords;
+    gs.phase = 'typing';
+  }
+
+  room.lastActivity = Date.now();
+  return room;
+}
+
 // ===== COMMON =====
 
 export function startGame(code: string, hostId: string): Room | null {
@@ -443,6 +558,9 @@ export function startGame(code: string, hostId: string): Room | null {
       break;
     case 'speed-math':
       gameState = initSpeedMath(room);
+      break;
+    case 'word-blitz':
+      gameState = initWordBlitz(room);
       break;
     default:
       return null;
