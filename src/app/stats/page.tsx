@@ -102,6 +102,7 @@ export default function StatsPage() {
                         src={`/images/games/${gameType}.webp`}
                         alt={gameType}
                         className="w-full h-full object-cover"
+                        loading="lazy"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
                     </div>
@@ -139,6 +140,7 @@ export default function StatsPage() {
                       src={`/images/games/${r.gameType}.webp`}
                       alt={r.gameType}
                       className="w-full h-full object-cover"
+                      loading="lazy"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                   </div>

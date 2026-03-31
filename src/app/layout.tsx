@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   description: "No signup, no downloads. Just pick a name, join a room, and play. Mobile-first party games for groups of friends and family.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/icon-192.png",
+    icon: "/favicon.ico",
     apple: "/icon-512.png",
   },
   openGraph: {

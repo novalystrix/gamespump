@@ -44,6 +44,7 @@ function RecentGames({ history, onRejoin }: { history: GameResult[]; onRejoin: (
                     src={`/images/games/${r.gameType}.webp`}
                     alt={r.gameType}
                     className="w-full h-full object-cover"
+                    loading="lazy"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                 </div>
@@ -291,7 +292,7 @@ export default function Home() {
         <div className="mb-6">
           <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-3">Host a Game</p>
           <div className="grid grid-cols-2 gap-3">
-            {GAMES.map((game) => (
+            {GAMES.map((game, index) => (
               <button
                 key={game.id}
                 onClick={() => handleHostGame(game.id)}
@@ -311,6 +312,7 @@ export default function Home() {
                     src={`/images/games/${game.id}.webp`}
                     alt={game.name}
                     className="w-full h-full object-cover"
+                    loading={index >= 2 ? 'lazy' : undefined}
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                       (e.target as HTMLImageElement).parentElement!.className =
