@@ -515,7 +515,10 @@ export default function MemoryMatchPage({ params }: { params: { code: string } }
   if (!gameState) {
     return (
       <main className="min-h-[100dvh] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-white/50 text-sm font-body">Loading game...</p>
+        </div>
       </main>
     );
   }

@@ -8,6 +8,7 @@ import { Player, TriviaAnswer, TriviaReaction } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CrownIcon } from '@/components/icons/GameIcons';
 import { ShareResults } from '@/components/ShareResults';
+import { HowToPlay } from '@/components/HowToPlay';
 
 const QUESTION_TIME = 15; // seconds
 const REACTION_EMOJIS = ['👏', '🔥', '😂', '🤔'];
@@ -288,7 +289,7 @@ function ResultsView({
       {/* Question recap */}
       <div className="text-center mb-6">
         <p className="text-white/40 text-sm mb-2">The correct answer was:</p>
-        <div className={`inline-block px-4 py-2 rounded-xl ${ANSWER_COLORS[correctIndex].bg} text-white font-bold text-lg`}>
+        <div className={`inline-block px-4 py-2 rounded-xl ${ANSWER_COLORS[correctIndex].bg} text-white font-bold text-lg animate-correct-glow`}>
           {gameState.question.options[correctIndex]}
         </div>
       </div>
@@ -493,7 +494,9 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
   const [session] = useState(() => typeof window !== 'undefined' ? getSession() : null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [myAnswer, setMyAnswer] = useState<number | null>(null);
+  const [shaking, setShaking] = useState(false);
   const [error, setError] = useState('');
+  const [roomEnded, setRoomEnded] = useState(false);
   const [previousScores, setPreviousScores] = useState<Record<string, number>>({});
   const prevQuestionRef = useRef<number>(-1);
   const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -506,6 +509,10 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
         const data = await res.json();
         if (data.error === 'No active game') {
           router.push(`/room/${params.code}`);
+          return;
+        }
+        if (res.status === 404) {
+          setRoomEnded(true);
           return;
         }
         setError('Failed to load game');
@@ -596,6 +603,16 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
   }, [gameState?.phase, gameState?.currentQuestion, params.code]);
 
   useEffect(() => {
+    if (gameState?.phase === 'results' && myAnswer !== null && gameState.question.correctIndex !== undefined) {
+      if (myAnswer !== gameState.question.correctIndex) {
+        setShaking(true);
+        setTimeout(() => setShaking(false), 300);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.phase, gameState?.currentQuestion]);
+
+  useEffect(() => {
     if (gameState?.phase === 'leaderboard' && session?.playerId) {
       saveGameResult({
         gameType: 'trivia-clash',
@@ -621,6 +638,24 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
     });
   }
 
+  if (roomEnded) {
+    return (
+      <main className="min-h-[100dvh] flex items-center justify-center px-6">
+        <div className="text-center">
+          <div className="text-4xl mb-4">🏁</div>
+          <h2 className="text-xl font-display font-bold text-white mb-2">This room has ended</h2>
+          <p className="text-white/50 text-sm mb-6">The game session is no longer available.</p>
+          <button
+            onClick={() => router.push('/')}
+            className="px-6 py-3 rounded-xl glass text-white font-semibold"
+          >
+            Go Home
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   if (error) {
     return (
       <main className="min-h-[100dvh] flex items-center justify-center px-6">
@@ -640,7 +675,10 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
   if (!gameState) {
     return (
       <main className="min-h-[100dvh] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-white/50 text-sm font-body">Loading game...</p>
+        </div>
       </main>
     );
   }
@@ -654,11 +692,16 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
   const isHost = gameState.players.find(p => p.id === session?.playerId)?.isHost ?? false;
 
   return (
-    <main className="min-h-[100dvh] flex flex-col px-6 py-6 relative overflow-hidden">
+    <main className={`min-h-[100dvh] flex flex-col px-6 py-6 relative overflow-hidden${shaking ? ' animate-screen-shake' : ''}`}>
       {/* Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-32 -left-32 w-80 h-80 bg-purple-600/15 rounded-full blur-3xl" />
         <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-fuchsia-600/10 rounded-full blur-3xl" />
+      </div>
+
+      {/* How to Play */}
+      <div className="fixed top-4 right-4 z-40">
+        <HowToPlay gameId="trivia-clash" />
       </div>
 
       {/* Floating emoji reactions */}

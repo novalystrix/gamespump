@@ -8,6 +8,7 @@ import { Player } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CrownIcon } from '@/components/icons/GameIcons';
 import { ShareResults } from '@/components/ShareResults';
+import { HowToPlay } from '@/components/HowToPlay';
 
 const ROUND_TIME = 30; // seconds
 
@@ -419,6 +420,7 @@ export default function WordBlitzPage({ params }: { params: { code: string } }) 
   const [inputShake, setInputShake] = useState(false);
   const [scorePopup, setScorePopup] = useState<{ points: number; key: number } | null>(null);
   const [error, setError] = useState('');
+  const [roomEnded, setRoomEnded] = useState(false);
   const [previousScores, setPreviousScores] = useState<Record<string, number>>({});
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -435,6 +437,10 @@ export default function WordBlitzPage({ params }: { params: { code: string } }) 
         const data = await res.json();
         if (data.error === 'No active game') {
           router.push(`/room/${params.code}`);
+          return;
+        }
+        if (res.status === 404) {
+          setRoomEnded(true);
           return;
         }
         setError('Failed to load game');
@@ -601,6 +607,24 @@ export default function WordBlitzPage({ params }: { params: { code: string } }) 
     setTimeout(() => setInputShake(false), 350);
   }
 
+  if (roomEnded) {
+    return (
+      <main className="min-h-[100dvh] flex items-center justify-center px-6">
+        <div className="text-center">
+          <div className="text-4xl mb-4">🏁</div>
+          <h2 className="text-xl font-display font-bold text-white mb-2">This room has ended</h2>
+          <p className="text-white/50 text-sm mb-6">The game session is no longer available.</p>
+          <button
+            onClick={() => router.push('/')}
+            className="px-6 py-3 rounded-xl glass text-white font-semibold"
+          >
+            Go Home
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   if (error) {
     return (
       <main className="min-h-[100dvh] flex items-center justify-center px-6">
@@ -620,7 +644,10 @@ export default function WordBlitzPage({ params }: { params: { code: string } }) 
   if (!gameState) {
     return (
       <main className="min-h-[100dvh] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-white/50 text-sm font-body">Loading game...</p>
+        </div>
       </main>
     );
   }

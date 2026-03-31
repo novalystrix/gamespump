@@ -185,7 +185,7 @@ function ResultsView({
               className={`py-5 px-4 rounded-2xl font-display font-bold text-2xl text-white
                 min-h-[72px] flex items-center justify-center
                 ${isCorrect
-                  ? `${colors.bg} ring-4 ring-emerald-500 shadow-lg shadow-emerald-500/25`
+                  ? `${colors.bg} ring-4 ring-emerald-500 shadow-lg shadow-emerald-500/25 animate-correct-glow`
                   : isWrong
                     ? `${colors.bg} ring-4 ring-red-500 animate-shake`
                     : 'bg-white/5 opacity-30'
@@ -395,6 +395,7 @@ export default function SpeedMathPage({ params }: { params: { code: string } }) 
   const [session] = useState(() => typeof window !== 'undefined' ? getSession() : null);
   const [gameState, setGameState] = useState<SpeedMathState | null>(null);
   const [myAnswer, setMyAnswer] = useState<number | null>(null);
+  const [shaking, setShaking] = useState(false);
   const [error, setError] = useState('');
   const [roomEnded, setRoomEnded] = useState(false);
   const [previousScores, setPreviousScores] = useState<Record<string, number>>({});
@@ -507,6 +508,16 @@ export default function SpeedMathPage({ params }: { params: { code: string } }) 
   }, [gameState?.phase, gameState?.currentQuestion, params.code]);
 
   useEffect(() => {
+    if (gameState?.phase === 'results' && myAnswer !== null && gameState.question.correctIndex !== undefined) {
+      if (myAnswer !== gameState.question.correctIndex) {
+        setShaking(true);
+        setTimeout(() => setShaking(false), 300);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.phase, gameState?.currentQuestion]);
+
+  useEffect(() => {
     if (gameState?.phase === 'leaderboard' && session?.playerId) {
       saveGameResult({
         gameType: 'speed-math',
@@ -567,7 +578,10 @@ export default function SpeedMathPage({ params }: { params: { code: string } }) 
   if (!gameState) {
     return (
       <main className="min-h-[100dvh] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-white/50 text-sm font-body">Loading game...</p>
+        </div>
       </main>
     );
   }
@@ -580,7 +594,7 @@ export default function SpeedMathPage({ params }: { params: { code: string } }) 
   const diffColors = DIFFICULTY_COLORS[gameState.question.difficulty] || DIFFICULTY_COLORS.easy;
 
   return (
-    <main className="min-h-[100dvh] flex flex-col px-6 py-6 relative overflow-hidden">
+    <main className={`min-h-[100dvh] flex flex-col px-6 py-6 relative overflow-hidden${shaking ? ' animate-screen-shake' : ''}`}>
       {/* Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-32 -left-32 w-80 h-80 bg-purple-600/15 rounded-full blur-3xl" />

@@ -207,6 +207,7 @@ function ResultsView({
       {myVote && (
         <div className="flex gap-3 mb-4">
           <div className={`flex-1 py-3 px-4 rounded-xl font-display font-bold text-sm text-center text-white truncate
+            ${majorityIsA ? 'animate-correct-glow' : ''}
             ${myVote === 'A'
               ? (majorityIsA ? 'bg-blue-500/20 ring-4 ring-emerald-500' : 'bg-blue-500/20 ring-4 ring-red-500')
               : 'bg-white/5 opacity-25'
@@ -214,6 +215,7 @@ function ResultsView({
             {gameState.round.optionA}
           </div>
           <div className={`flex-1 py-3 px-4 rounded-xl font-display font-bold text-sm text-center text-white truncate
+            ${!majorityIsA ? 'animate-correct-glow' : ''}
             ${myVote === 'B'
               ? (!majorityIsA ? 'bg-orange-500/20 ring-4 ring-emerald-500' : 'bg-orange-500/20 ring-4 ring-red-500')
               : 'bg-white/5 opacity-25'
@@ -460,6 +462,7 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
   const [session] = useState(() => typeof window !== 'undefined' ? getSession() : null);
   const [gameState, setGameState] = useState<ThisOrThatState | null>(null);
   const [myVote, setMyVote] = useState<'A' | 'B' | null>(null);
+  const [shaking, setShaking] = useState(false);
   const [error, setError] = useState('');
   const [roomEnded, setRoomEnded] = useState(false);
   const [previousScores, setPreviousScores] = useState<Record<string, number>>({});
@@ -573,6 +576,21 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
   }, [gameState?.phase, gameState?.currentRound, params.code]);
 
   useEffect(() => {
+    if (gameState?.phase === 'results' && myVote !== null) {
+      const answers = gameState.answers as Record<string, 'A' | 'B'>;
+      const countA = gameState.players.filter(p => answers[p.id] === 'A').length;
+      const countB = gameState.players.filter(p => answers[p.id] === 'B').length;
+      const majorityIsA = countA >= countB;
+      const inMajority = (myVote === 'A' && majorityIsA) || (myVote === 'B' && !majorityIsA);
+      if (!inMajority) {
+        setShaking(true);
+        setTimeout(() => setShaking(false), 300);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.phase, gameState?.currentRound]);
+
+  useEffect(() => {
     if (!gameState) return;
     if (gameState.phase === 'results' && prevPhaseRef.current === 'voting') {
       playSound('reveal');
@@ -649,7 +667,10 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
   if (!gameState) {
     return (
       <main className="min-h-[100dvh] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-white/50 text-sm font-body">Loading game...</p>
+        </div>
       </main>
     );
   }
@@ -661,7 +682,7 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
   const isHost = gameState.players.find(p => p.id === session?.playerId)?.isHost ?? false;
 
   return (
-    <main className="min-h-[100dvh] flex flex-col px-6 py-6 relative overflow-hidden">
+    <main className={`min-h-[100dvh] flex flex-col px-6 py-6 relative overflow-hidden${shaking ? ' animate-screen-shake' : ''}`}>
       {/* Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-32 -left-32 w-80 h-80 bg-purple-600/15 rounded-full blur-3xl" />
