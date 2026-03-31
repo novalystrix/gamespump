@@ -3,16 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession, generatePlayerId, saveSession } from '@/lib/session';
-import { getGameHistory, GameResult } from '@/lib/gameHistory';
+import { getGameHistory, getGamesPlayed, GameResult } from '@/lib/gameHistory';
 import { GAMES } from '@/lib/types';
 import { GamepadIcon } from '@/components/icons/GameIcons';
 
 function BackgroundDecor() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden">
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl" />
-      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-fuchsia-600/15 rounded-full blur-3xl" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl" />
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl animate-float-slow" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-fuchsia-600/15 rounded-full blur-3xl animate-float-medium" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl animate-float-slow" style={{ animationDelay: '4s' }} />
     </div>
   );
 }
@@ -74,15 +74,34 @@ function RecentGames({ history, onRejoin }: { history: GameResult[]; onRejoin: (
   );
 }
 
+function StatsSection({ gamesPlayed }: { gamesPlayed: number }) {
+  return (
+    <div className="mb-6 flex items-center justify-center gap-6 text-center">
+      <div>
+        <p className="text-lg font-display font-bold text-white/60">{gamesPlayed > 0 ? gamesPlayed.toLocaleString() : '—'}</p>
+        <p className="text-xs text-white/25 font-body mt-0.5">games played</p>
+      </div>
+      <div className="w-px h-8 bg-white/10" />
+      <div>
+        <p className="text-lg font-display font-bold text-white/60">{GAMES.length}</p>
+        <p className="text-xs text-white/25 font-body mt-0.5">games available</p>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
   const [joinCode, setJoinCode] = useState('');
   const [showJoin, setShowJoin] = useState(false);
   const [creating, setCreating] = useState<string | null>(null);
   const [history, setHistory] = useState<GameResult[]>([]);
+  const [gamesPlayed, setGamesPlayed] = useState(0);
+  const [hoveredGame, setHoveredGame] = useState<string | null>(null);
 
   useEffect(() => {
     setHistory(getGameHistory());
+    setGamesPlayed(getGamesPlayed());
   }, []);
 
   async function handleHostGame(gameId: string) {
@@ -103,7 +122,6 @@ export default function Home() {
       });
       const data = await res.json();
       if (data.code) {
-        // Pre-select the game
         await fetch(`/api/rooms/${data.code}/game`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -129,13 +147,14 @@ export default function Home() {
       <BackgroundDecor />
 
       <div className="relative z-10 w-full max-w-sm mx-auto page-transition">
-        {/* Logo */}
+        {/* Hero */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="flex items-center justify-center gap-2 mb-3">
             <GamepadIcon className="w-7 h-7 text-purple-400" />
             <h1 className="text-3xl font-display font-bold text-gradient">GamesPump</h1>
           </div>
-          <p className="text-white/40 text-sm font-body">No signup. No downloads. Just play.</p>
+          <p className="text-xl font-display font-semibold text-white/80 mb-1">Party Games. Instant Fun.</p>
+          <p className="text-white/35 text-sm font-body">No signup. No downloads. Pick a name. Play with friends.</p>
         </div>
 
         {/* Join a Game */}
@@ -192,6 +211,10 @@ export default function Home() {
                 key={game.id}
                 onClick={() => handleHostGame(game.id)}
                 disabled={creating !== null}
+                onMouseEnter={() => setHoveredGame(game.id)}
+                onMouseLeave={() => setHoveredGame(null)}
+                onFocus={() => setHoveredGame(game.id)}
+                onBlur={() => setHoveredGame(null)}
                 className={`relative rounded-2xl overflow-hidden text-left transition-all
                   active:scale-[0.97]
                   ${creating === game.id ? 'opacity-60' : 'hover:scale-[1.02]'}
@@ -209,9 +232,19 @@ export default function Home() {
                     }}
                   />
                 </div>
+                {/* Hover overlay with description */}
+                <div
+                  className={`absolute inset-0 bg-black/75 flex flex-col justify-end p-3 transition-opacity duration-200
+                    ${hoveredGame === game.id ? 'opacity-100' : 'opacity-0'}`}
+                >
+                  <p className="text-xs text-white/90 font-body leading-snug">{game.description}</p>
+                </div>
                 <div className="px-3 py-2 bg-white/[0.04]">
                   <p className="text-sm font-display font-bold text-white leading-tight">{game.name}</p>
-                  <p className="text-xs text-white/35 mt-0.5">{game.minPlayers}–{game.maxPlayers} players</p>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <p className="text-xs text-white/35">{game.minPlayers}–{game.maxPlayers} players</p>
+                    <p className="text-xs text-white/25">~{game.durationMinutes}m</p>
+                  </div>
                 </div>
                 {creating === game.id && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30">
@@ -223,9 +256,14 @@ export default function Home() {
           </div>
         </div>
 
+        <StatsSection gamesPlayed={gamesPlayed} />
+
         <RecentGames history={history} onRejoin={(code) => router.push(`/join/${code}`)} />
 
-        <p className="text-center text-white/20 text-xs font-body">Party games for everyone</p>
+        {/* Footer */}
+        <footer className="text-center text-white/20 text-xs font-body pt-4 pb-2">
+          Made with 🎮 by GamesPump
+        </footer>
       </div>
     </main>
   );
