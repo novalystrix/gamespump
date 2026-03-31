@@ -1,4 +1,5 @@
-import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState } from './types';
+import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState, EmojiBattleGameState } from './types';
+import { generateRound } from './emoji-sets';
 import { getShuffledQuestions } from './trivia-questions';
 import { getShuffledThisOrThatQuestions } from './this-or-that-questions';
 import { generateMathQuestions } from './math-questions';
@@ -684,6 +685,9 @@ export function startGame(code: string, hostId: string): Room | null {
     case 'quick-draw':
       gameState = initQuickDraw(room);
       break;
+    case 'emoji-battle':
+      gameState = initEmojiBattle(room);
+      break;
     default:
       return null;
   }
@@ -793,6 +797,92 @@ export function addReaction(code: string, playerId: string, emoji: string): Room
   gs.reactions = gs.reactions.filter(r => r.at > fiveSecsAgo);
   gs.reactions.push({ id: `${playerId}_${Date.now()}`, playerId, emoji, at: Date.now() });
 
+  room.lastActivity = Date.now();
+  return room;
+}
+
+// ── Emoji Battle ──────────────────────────────────────────────────────────
+
+function initEmojiBattle(room: Room): EmojiBattleGameState {
+  const round = generateRound();
+  const scores: Record<string, number> = {};
+  room.players.forEach(p => { scores[p.id] = 0; });
+  return {
+    type: 'emoji-battle',
+    currentRound: 0,
+    totalRounds: 10,
+    targetEmoji: round.target,
+    grid: round.grid,
+    correctIndex: round.correctIndex,
+    answers: {},
+    scores,
+    roundStartedAt: Date.now(),
+    phase: 'playing',
+    wrongGuesses: {},
+  };
+}
+
+export function submitEmojiBattleAnswer(code: string, playerId: string, roundIndex: number, emojiIndex: number): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'emoji-battle') return null;
+  const gs = room.gameState;
+  if (gs.phase !== 'playing' || gs.currentRound !== roundIndex) return null;
+  
+  // Already answered correctly this round
+  if (gs.answers[playerId]?.correct) return room;
+  
+  const correct = emojiIndex === gs.correctIndex;
+  
+  if (correct) {
+    // Score based on order of correct answers
+    const correctCount = Object.values(gs.answers).filter(a => a.correct).length;
+    const points = correctCount === 0 ? 100 : correctCount === 1 ? 75 : correctCount === 2 ? 50 : 25;
+    gs.scores[playerId] = (gs.scores[playerId] || 0) + points;
+    gs.answers[playerId] = { index: emojiIndex, correct: true, answeredAt: Date.now() };
+  } else {
+    // Wrong — penalize once per round
+    if (!gs.wrongGuesses[playerId]) {
+      gs.scores[playerId] = Math.max(0, (gs.scores[playerId] || 0) - 25);
+      gs.wrongGuesses[playerId] = true;
+    }
+    gs.answers[playerId] = { index: emojiIndex, correct: false, answeredAt: Date.now() };
+  }
+  
+  // If all players answered correctly, advance early
+  const allCorrect = room.players.every(p => gs.answers[p.id]?.correct);
+  if (allCorrect) {
+    gs.phase = 'results';
+  }
+  
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function advanceEmojiBattle(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'emoji-battle') return null;
+  const gs = room.gameState;
+  
+  if (gs.phase === 'playing') {
+    // Time expired — show results
+    gs.phase = 'results';
+  } else if (gs.phase === 'results') {
+    if (gs.currentRound >= gs.totalRounds - 1) {
+      gs.phase = 'leaderboard';
+    } else {
+      // Next round
+      const round = generateRound();
+      gs.currentRound++;
+      gs.targetEmoji = round.target;
+      gs.grid = round.grid;
+      gs.correctIndex = round.correctIndex;
+      gs.answers = {};
+      gs.wrongGuesses = {};
+      gs.roundStartedAt = Date.now();
+      gs.phase = 'playing';
+    }
+  }
+  
   room.lastActivity = Date.now();
   return room;
 }

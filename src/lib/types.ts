@@ -129,7 +129,28 @@ export interface QuickDrawGameState {
   scores: Record<string, number>;
 }
 
-export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState | WordBlitzGameState | QuickDrawGameState;
+// Emoji Battle types
+export interface EmojiBattleAnswer {
+  index: number;
+  correct: boolean;
+  answeredAt: number;
+}
+
+export interface EmojiBattleGameState {
+  type: 'emoji-battle';
+  currentRound: number;
+  totalRounds: number;
+  targetEmoji: string;
+  grid: string[];
+  correctIndex: number;
+  answers: Record<string, EmojiBattleAnswer>;
+  scores: Record<string, number>;
+  roundStartedAt: number;
+  phase: 'playing' | 'results' | 'leaderboard';
+  wrongGuesses: Record<string, boolean>;
+}
+
+export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState | WordBlitzGameState | QuickDrawGameState | EmojiBattleGameState;
 
 export interface Room {
   code: string;
@@ -242,5 +263,15 @@ export const GAMES: GameInfo[] = [
     durationMinutes: '3-5',
     icon: 'calculator',
     color: 'from-blue-500 to-indigo-500',
+  },
+  {
+    id: 'emoji-battle',
+    name: 'Emoji Battle',
+    description: 'Spot the matching emoji in a sea of look-alikes. Speed and accuracy win!',
+    minPlayers: 2,
+    maxPlayers: 8,
+    durationMinutes: '2-3',
+    icon: 'target',
+    color: 'from-yellow-500 to-orange-500',
   },
 ];

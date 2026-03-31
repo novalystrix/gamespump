@@ -57,6 +57,15 @@ const GAME_RULES: Record<string, { name: string; rules: string[]; scoring: strin
     ],
     scoring: 'Up to 500 pts — only speed and accuracy win.',
   },
+  'emoji-battle': {
+    name: 'Emoji Battle',
+    rules: [
+      'Find the matching emoji in a 3x3 grid.',
+      'Tap the right one as fast as you can.',
+      'Wrong taps cost you 25 points.',
+    ],
+    scoring: '1st correct = 100pts, 2nd = 75pts, 3rd = 50pts. Wrong = -25pts.',
+  },
 };
 
 interface HowToPlayProps {

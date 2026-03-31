@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getRoom } from '@/lib/rooms';
-import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, QuickDrawGameState } from '@/lib/types';
+import { getRoom, advanceEmojiBattle } from '@/lib/rooms';
+import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, QuickDrawGameState, EmojiBattleGameState } from '@/lib/types';
 
 export async function GET(
   request: Request,
@@ -141,6 +141,33 @@ export async function GET(
           canvasData: qgs.canvasData,
           correctGuessers: qgs.correctGuessers,
           scores: qgs.scores,
+          players: room.players,
+        });
+      }
+
+      case 'emoji-battle': {
+        const egs = gs as EmojiBattleGameState;
+        
+        // Auto-advance: playing phase expires after 5 seconds
+        if (egs.phase === 'playing' && Date.now() - egs.roundStartedAt > 5000) {
+          advanceEmojiBattle(params.code);
+        }
+        // Auto-advance: results phase lasts 2 seconds
+        if (egs.phase === 'results' && Date.now() - egs.roundStartedAt > 7000) {
+          advanceEmojiBattle(params.code);
+        }
+        
+        return NextResponse.json({
+          gameType: 'emoji-battle',
+          phase: egs.phase,
+          currentRound: egs.currentRound,
+          totalRounds: egs.totalRounds,
+          targetEmoji: egs.targetEmoji,
+          grid: egs.grid,
+          correctIndex: egs.phase !== 'playing' ? egs.correctIndex : undefined,
+          answers: egs.phase === 'playing' ? Object.keys(egs.answers).filter(k => egs.answers[k].correct) : egs.answers,
+          scores: egs.scores,
+          roundStartedAt: egs.roundStartedAt,
           players: room.players,
         });
       }
