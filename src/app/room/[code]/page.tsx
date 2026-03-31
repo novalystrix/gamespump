@@ -212,14 +212,17 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           )}
         </div>
 
-        {/* Copy Invite Link */}
-        <div className="text-center mb-4">
+        {/* Invite Friends */}
+        <div className="mb-4">
           <button
             onClick={copyInvite}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl glass hover:bg-white/10 transition-colors text-sm text-white/60 hover:text-white/80"
+            className="w-full py-3 px-6 rounded-2xl font-display font-semibold
+              bg-gradient-to-r from-purple-500/20 to-fuchsia-500/20
+              ring-1 ring-purple-500/30 text-white/80 hover:text-white hover:ring-purple-400/50
+              active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
           >
-            <CopyIcon className="w-3.5 h-3.5" />
-            {copiedInvite ? 'Copied!' : 'Copy Invite Link'}
+            <CopyIcon className="w-4 h-4" />
+            {copiedInvite ? 'Copied!' : 'Invite Friends'}
           </button>
         </div>
 

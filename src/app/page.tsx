@@ -26,34 +26,49 @@ const GAME_NAMES: Record<string, string> = {
   'speed-math': 'Speed Math',
 };
 
-function RecentGames({ history }: { history: GameResult[] }) {
+function RecentGames({ history, onRejoin }: { history: GameResult[]; onRejoin: (code: string) => void }) {
   if (history.length === 0) return null;
+  const now = Date.now();
+  const THIRTY_MIN = 30 * 60 * 1000;
   return (
     <div className="mb-6">
       <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-2">Recent Games</p>
       <div className="space-y-2">
-        {history.map((r, i) => (
-          <div key={i} className="flex items-center justify-between glass rounded-xl px-3 py-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
-                <img
-                  src={`/images/games/${r.gameType}.png`}
-                  alt={r.gameType}
-                  className="w-full h-full object-cover"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
+        {history.map((r, i) => {
+          const canRejoin = now - new Date(r.date).getTime() < THIRTY_MIN;
+          return (
+            <div key={i} className="flex items-center justify-between glass rounded-xl px-3 py-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
+                  <img
+                    src={`/images/games/${r.gameType}.png`}
+                    alt={r.gameType}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-white/80">{GAME_NAMES[r.gameType] ?? r.gameType}</p>
+                  <p className="text-xs text-white/30">Room {r.roomCode}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-semibold text-white/80">{GAME_NAMES[r.gameType] ?? r.gameType}</p>
-                <p className="text-xs text-white/30">Room {r.roomCode}</p>
+              <div className="text-right flex items-center gap-3">
+                <div>
+                  <p className="text-xs font-bold text-purple-300">{r.score} pts</p>
+                  <p className="text-xs text-white/25">{new Date(r.date).toLocaleDateString()}</p>
+                </div>
+                {canRejoin && (
+                  <button
+                    onClick={() => onRejoin(r.roomCode)}
+                    className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+                  >
+                    Rejoin
+                  </button>
+                )}
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs font-bold text-purple-300">{r.score} pts</p>
-              <p className="text-xs text-white/25">{new Date(r.date).toLocaleDateString()}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -208,7 +223,7 @@ export default function Home() {
           </div>
         </div>
 
-        <RecentGames history={history} />
+        <RecentGames history={history} onRejoin={(code) => router.push(`/join/${code}`)} />
 
         <p className="text-center text-white/20 text-xs font-body">Party games for everyone</p>
       </div>

@@ -7,6 +7,7 @@ import { saveGameResult } from '@/lib/gameHistory';
 import { Player } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CrownIcon } from '@/components/icons/GameIcons';
+import { ShareResults } from '@/components/ShareResults';
 
 const SYMBOL_SVGS: Record<string, (color: string) => React.ReactNode> = {
   star: (color) => (
@@ -241,6 +242,7 @@ function LeaderboardView({
       </div>
 
       <div className="space-y-3">
+        <ShareResults gameName="Memory Match" winnerName={sorted[0]?.name ?? ''} winnerScore={gameState.scores[sorted[0]?.id] || 0} />
         {isHost ? (
           <>
             <button

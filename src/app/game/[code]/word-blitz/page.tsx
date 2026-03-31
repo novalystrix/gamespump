@@ -7,6 +7,7 @@ import { saveGameResult } from '@/lib/gameHistory';
 import { Player } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CrownIcon } from '@/components/icons/GameIcons';
+import { ShareResults } from '@/components/ShareResults';
 
 const ROUND_TIME = 30; // seconds
 
@@ -370,6 +371,7 @@ function LeaderboardView({
       </div>
 
       <div className="space-y-3">
+        <ShareResults gameName="Word Blitz" winnerName={sorted[0]?.name ?? ''} winnerScore={gameState.scores[sorted[0]?.id] || 0} />
         {isHost ? (
           <>
             <button
