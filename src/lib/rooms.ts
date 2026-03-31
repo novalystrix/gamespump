@@ -235,6 +235,7 @@ function initThisOrThat(room: Room): ThisOrThatGameState {
     currentRound: 0,
     rounds,
     answers: {},
+    voteTimes: {},
     scores,
     roundStartedAt: Date.now(),
     phase: 'voting',
@@ -250,19 +251,22 @@ export function submitVote(code: string, playerId: string, choice: 'A' | 'B'): R
   if (gs.answers[playerId]) return null; // already voted
 
   gs.answers[playerId] = choice;
+  gs.voteTimes[playerId] = Date.now();
 
   // Check if all players voted
   const allVoted = room.players.every(p => gs.answers[p.id]);
   if (allVoted) {
-    // Calculate scores - majority wins
+    // Calculate scores - majority wins with speed bonus
     let countA = 0, countB = 0;
     Object.values(gs.answers).forEach(v => { if (v === 'A') countA++; else countB++; });
     const majority: 'A' | 'B' = countA >= countB ? 'A' : 'B';
     
-    // Award points to majority
+    // Award points to majority — faster voters get more
     for (const [pid, vote] of Object.entries(gs.answers)) {
       if (vote === majority) {
-        gs.scores[pid] = (gs.scores[pid] || 0) + 100;
+        const elapsed = (gs.voteTimes[pid] || Date.now()) - gs.roundStartedAt;
+        const speedBonus = Math.max(0, Math.round(50 * (1 - elapsed / 10000)));
+        gs.scores[pid] = (gs.scores[pid] || 0) + 100 + speedBonus;
       }
     }
     
@@ -288,7 +292,9 @@ export function forceThisOrThatResults(code: string): Room | null {
     const majority: 'A' | 'B' = countA >= countB ? 'A' : 'B';
     for (const [pid, vote] of Object.entries(gs.answers)) {
       if (vote === majority) {
-        gs.scores[pid] = (gs.scores[pid] || 0) + 100;
+        const elapsed = (gs.voteTimes[pid] || Date.now()) - gs.roundStartedAt;
+        const speedBonus = Math.max(0, Math.round(50 * (1 - elapsed / 10000)));
+        gs.scores[pid] = (gs.scores[pid] || 0) + 100 + speedBonus;
       }
     }
   }
@@ -311,6 +317,7 @@ export function advanceThisOrThatRound(code: string): Room | null {
   } else {
     gs.currentRound = nextRound;
     gs.answers = {};
+    gs.voteTimes = {};
     gs.roundStartedAt = Date.now();
     gs.phase = 'voting';
   }

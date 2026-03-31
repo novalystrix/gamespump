@@ -73,6 +73,7 @@ export interface ThisOrThatGameState {
   currentRound: number;
   rounds: ThisOrThatRound[];
   answers: Record<string, 'A' | 'B'>;
+  voteTimes: Record<string, number>; // playerId -> timestamp of vote
   scores: Record<string, number>;
   roundStartedAt: number;
   phase: 'voting' | 'results' | 'leaderboard';
