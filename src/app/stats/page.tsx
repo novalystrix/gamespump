@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession } from '@/lib/session';
 import { getGameHistory, getPlayerStats, GameResult, PlayerStats } from '@/lib/gameHistory';
+import { getAllAchievements, getUnlockedAchievements, Achievement, UnlockedAchievement } from '@/lib/achievements';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { PlayerSession } from '@/lib/types';
@@ -43,11 +44,15 @@ export default function StatsPage() {
   const [session, setSession] = useState<PlayerSession | null>(null);
   const [history, setHistory] = useState<GameResult[]>([]);
   const [stats, setStats] = useState<PlayerStats | null>(null);
+  const [allAchievements, setAllAchievements] = useState<Achievement[]>([]);
+  const [unlockedAchievements, setUnlockedAchievements] = useState<UnlockedAchievement[]>([]);
 
   useEffect(() => {
     setSession(getSession());
     setHistory(getGameHistory());
     setStats(getPlayerStats());
+    setAllAchievements(getAllAchievements());
+    setUnlockedAchievements(getUnlockedAchievements());
   }, []);
 
   const favoriteGameName = stats?.favoriteGame ? (GAME_NAMES[stats.favoriteGame] ?? stats.favoriteGame) : '—';
@@ -169,6 +174,41 @@ export default function StatsPage() {
             <p className="text-4xl mb-3">🎮</p>
             <p className="text-white/50 font-body text-sm">No games played yet.</p>
             <p className="text-white/30 font-body text-xs mt-1">Play a game to see your stats here!</p>
+          </div>
+        )}
+
+        {/* Achievements */}
+        {allAchievements.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-white/30 font-body uppercase tracking-wider">Achievements</p>
+              <p className="text-xs text-white/30 font-body">
+                {unlockedAchievements.length}/{allAchievements.length}
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {allAchievements.map((achievement) => {
+                const isUnlocked = unlockedAchievements.some((u) => u.id === achievement.id);
+                return (
+                  <div
+                    key={achievement.id}
+                    className={`glass rounded-2xl p-3 flex flex-col items-center text-center transition-all ${
+                      isUnlocked ? 'ring-1 ring-amber-400/30' : 'opacity-40'
+                    }`}
+                  >
+                    <span className="text-2xl mb-1">
+                      {isUnlocked ? achievement.emoji : '🔒'}
+                    </span>
+                    <p className="text-xs font-display font-semibold text-white leading-tight">
+                      {isUnlocked ? achievement.name : achievement.name}
+                    </p>
+                    <p className="text-xs text-white/40 font-body mt-0.5 leading-tight">
+                      {isUnlocked ? achievement.description : '???'}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

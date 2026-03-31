@@ -11,6 +11,8 @@ import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { ShareResults } from '@/components/ShareResults';
 import { HowToPlay } from '@/components/HowToPlay';
 import { Podium } from '@/components/Podium';
+import { AchievementToast } from '@/components/AchievementToast';
+import { useAchievementCheck } from '@/hooks/useAchievementCheck';
 
 const QUESTION_TIME = 10; // seconds
 
@@ -274,6 +276,7 @@ function LeaderboardView({
   session: { playerId: string } | null;
 }) {
   const [restarting, setRestarting] = useState(false);
+  const newAchievements = useAchievementCheck();
 
   async function handlePlayAgain() {
     if (!session || !isHost) return;
@@ -405,6 +408,7 @@ function LeaderboardView({
           </>
         )}
       </div>
+      {newAchievements.length > 0 && <AchievementToast achievements={newAchievements} />}
     </div>
   );
 }

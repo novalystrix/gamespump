@@ -1,5 +1,27 @@
 const HISTORY_KEY = 'gamespump_history';
 const TOTAL_GAMES_KEY = 'gamespump_total_games';
+const MAX_STREAK_KEY = 'gamespump_max_streak';
+
+export function saveStreakRecord(streak: number): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const val = localStorage.getItem(MAX_STREAK_KEY);
+    const current = val ? parseInt(val, 10) : 0;
+    if (streak > current) {
+      localStorage.setItem(MAX_STREAK_KEY, String(streak));
+    }
+  } catch {}
+}
+
+export function getStreakRecord(): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const val = localStorage.getItem(MAX_STREAK_KEY);
+    return val ? parseInt(val, 10) : 0;
+  } catch {
+    return 0;
+  }
+}
 
 export interface GameResult {
   gameType: string;
