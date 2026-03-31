@@ -14,7 +14,7 @@ import { Podium } from '@/components/Podium';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
 
-const ROUND_TIME = 5; // seconds
+const ROUND_TIME = 7; // seconds
 
 function playSound(name: string) {
   if (typeof window === 'undefined') return;

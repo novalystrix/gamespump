@@ -148,12 +148,12 @@ export async function GET(
       case 'emoji-battle': {
         const egs = gs as EmojiBattleGameState;
         
-        // Auto-advance: playing phase expires after 5 seconds
-        if (egs.phase === 'playing' && Date.now() - egs.roundStartedAt > 5000) {
+        // Auto-advance: playing phase expires after 7 seconds
+        if (egs.phase === 'playing' && Date.now() - egs.roundStartedAt > 7000) {
           advanceEmojiBattle(params.code);
         }
         // Auto-advance: results phase lasts 2 seconds
-        if (egs.phase === 'results' && Date.now() - egs.roundStartedAt > 7000) {
+        if (egs.phase === 'results' && Date.now() - egs.roundStartedAt > 9000) {
           advanceEmojiBattle(params.code);
         }
         
