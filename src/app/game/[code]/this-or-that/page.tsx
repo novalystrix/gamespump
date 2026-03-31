@@ -86,10 +86,12 @@ function ResultsView({
   gameState,
   myId,
   previousScores,
+  myVote,
 }: {
   gameState: ThisOrThatState;
   myId: string;
   previousScores: Record<string, number>;
+  myVote?: 'A' | 'B' | null;
 }) {
   const answers = gameState.answers as Record<string, 'A' | 'B'>;
   const playersA = gameState.players.filter(p => answers[p.id] === 'A');
@@ -134,6 +136,26 @@ function ResultsView({
         </span>
         <h2 className="font-display font-bold text-lg text-white mt-2">{gameState.round.question}</h2>
       </div>
+
+      {/* My choice feedback */}
+      {myVote && (
+        <div className="flex gap-3 mb-4">
+          <div className={`flex-1 py-3 px-4 rounded-xl font-display font-bold text-sm text-center text-white truncate
+            ${myVote === 'A'
+              ? (majorityIsA ? 'bg-blue-500/20 ring-4 ring-emerald-500' : 'bg-blue-500/20 ring-4 ring-red-500')
+              : 'bg-white/5 opacity-25'
+            }`}>
+            {gameState.round.optionA}
+          </div>
+          <div className={`flex-1 py-3 px-4 rounded-xl font-display font-bold text-sm text-center text-white truncate
+            ${myVote === 'B'
+              ? (!majorityIsA ? 'bg-orange-500/20 ring-4 ring-emerald-500' : 'bg-orange-500/20 ring-4 ring-red-500')
+              : 'bg-white/5 opacity-25'
+            }`}>
+            {gameState.round.optionB}
+          </div>
+        </div>
+      )}
 
       {/* Results bar */}
       <div className="mb-6">
@@ -644,6 +666,7 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
                 gameState={gameState}
                 myId={session?.playerId || ''}
                 previousScores={previousScores}
+                myVote={myVote}
               />
             )}
           </>

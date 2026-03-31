@@ -135,10 +135,12 @@ function ResultsView({
   gameState,
   myId,
   previousScores,
+  myAnswer,
 }: {
   gameState: SpeedMathState;
   myId: string;
   previousScores: Record<string, number>;
+  myAnswer?: number | null;
 }) {
   const answers = gameState.answers as Record<string, SpeedMathAnswer>;
   const correctIndex = gameState.question.correctIndex!;
@@ -160,6 +162,40 @@ function ResultsView({
 
   return (
     <div className="animate-slide-up">
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-4px); }
+          75% { transform: translateX(4px); }
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
+      `}</style>
+
+      {/* Answer button feedback */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        {gameState.question.options.map((option, idx) => {
+          const colors = ANSWER_COLORS[idx];
+          const isCorrect = idx === correctIndex;
+          const isPicked = myAnswer === idx;
+          const isWrong = isPicked && !isCorrect;
+          return (
+            <div
+              key={idx}
+              className={`py-5 px-4 rounded-2xl font-display font-bold text-2xl text-white
+                min-h-[72px] flex items-center justify-center
+                ${isCorrect
+                  ? `${colors.bg} ring-4 ring-emerald-500 shadow-lg shadow-emerald-500/25`
+                  : isWrong
+                    ? `${colors.bg} ring-4 ring-red-500 animate-shake`
+                    : 'bg-white/5 opacity-30'
+                }`}
+            >
+              {option}
+            </div>
+          );
+        })}
+      </div>
+
       {/* Correct answer */}
       <div className="text-center mb-6">
         <p className="text-white/40 text-sm mb-2">The answer was:</p>
@@ -622,6 +658,7 @@ export default function SpeedMathPage({ params }: { params: { code: string } }) 
                 gameState={gameState}
                 myId={session?.playerId || ''}
                 previousScores={previousScores}
+                myAnswer={myAnswer}
               />
             )}
           </>

@@ -98,12 +98,14 @@ function MemoryCard({
   onClick,
   disabled,
   players,
+  flashState,
 }: {
   card: CardData;
   index: number;
   onClick: () => void;
   disabled: boolean;
   players: Player[];
+  flashState?: 'match' | 'nomatch' | null;
 }) {
   const isRevealed = card.flipped || card.matched;
   const matchedPlayer = card.matchedBy ? players.find(p => p.id === card.matchedBy) : null;
@@ -137,7 +139,9 @@ function MemoryCard({
         {/* Front of card (face up) */}
         <div
           className={`absolute inset-0 rounded-xl flex items-center justify-center bg-white/10 border-2 transition-all
-            ${card.matched ? 'animate-pulse-once' : ''}`}
+            ${card.matched ? 'animate-pulse-once' : ''}
+            ${flashState === 'match' ? 'ring-4 ring-emerald-500/50 animate-match-flash' : ''}
+            ${flashState === 'nomatch' ? 'ring-4 ring-red-500/50 animate-nomatch-flash' : ''}`}
           style={{
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
@@ -467,17 +471,37 @@ export default function MemoryMatchPage({ params }: { params: { code: string } }
             </div>
 
             {/* Card grid */}
+            <style>{`
+              @keyframes match-flash {
+                0%, 100% { box-shadow: none; }
+                40% { box-shadow: 0 0 0 4px rgba(16,185,129,0.5), 0 0 20px rgba(16,185,129,0.3); }
+              }
+              .animate-match-flash { animation: match-flash 0.6s ease-out; }
+              @keyframes nomatch-flash {
+                0%, 100% { box-shadow: none; }
+                40% { box-shadow: 0 0 0 4px rgba(239,68,68,0.5), 0 0 20px rgba(239,68,68,0.3); }
+              }
+              .animate-nomatch-flash { animation: nomatch-flash 0.6s ease-out; }
+            `}</style>
             <div className="grid grid-cols-4 gap-2 mb-4">
-              {gameState.board.map((card, idx) => (
-                <MemoryCard
-                  key={card.id}
-                  card={card}
-                  index={idx}
-                  onClick={() => handleFlip(idx)}
-                  disabled={!isMyTurn || gameState.turnPhase === 'showing-result'}
-                  players={gameState.players}
-                />
-              ))}
+              {gameState.board.map((card, idx) => {
+                const isFlipCard = gameState.turnPhase === 'showing-result' &&
+                  (idx === gameState.firstPick || idx === gameState.secondPick);
+                const flashState = isFlipCard
+                  ? (gameState.firstPick !== null && gameState.board[gameState.firstPick]?.matched ? 'match' : 'nomatch')
+                  : null;
+                return (
+                  <MemoryCard
+                    key={card.id}
+                    card={card}
+                    index={idx}
+                    onClick={() => handleFlip(idx)}
+                    disabled={!isMyTurn || gameState.turnPhase === 'showing-result'}
+                    players={gameState.players}
+                    flashState={flashState}
+                  />
+                );
+              })}
             </div>
 
             {/* Pairs found */}
