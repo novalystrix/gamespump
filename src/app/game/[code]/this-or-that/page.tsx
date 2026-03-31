@@ -9,6 +9,7 @@ import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CrownIcon } from '@/components/icons/GameIcons';
 import { ShareResults } from '@/components/ShareResults';
 import { HowToPlay } from '@/components/HowToPlay';
+import { Podium } from '@/components/Podium';
 
 function playSound(name: string) {
   if (typeof window === 'undefined') return;
@@ -346,6 +347,14 @@ function LeaderboardView({
   const sorted = [...gameState.players].sort(
     (a, b) => (gameState.scores[b.id] || 0) - (gameState.scores[a.id] || 0)
   );
+
+  const podiumPlayers = sorted.slice(0, 3).map((p) => ({
+    name: p.name,
+    avatar: p.avatar,
+    color: p.color,
+    score: gameState.scores[p.id] || 0,
+    isMe: p.id === myId,
+  }));
 
   return (
     <div className="animate-slide-up text-center">

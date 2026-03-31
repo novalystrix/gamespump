@@ -9,6 +9,7 @@ import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CrownIcon } from '@/components/icons/GameIcons';
 import { ShareResults } from '@/components/ShareResults';
 import { HowToPlay } from '@/components/HowToPlay';
+import { Podium } from '@/components/Podium';
 
 const QUESTION_TIME = 15; // seconds
 const REACTION_EMOJIS = ['👏', '🔥', '😂', '🤔'];
@@ -360,6 +361,14 @@ function LeaderboardView({
     (a, b) => (gameState.scores[b.id] || 0) - (gameState.scores[a.id] || 0)
   );
 
+  const podiumPlayers = sorted.slice(0, 3).map((p) => ({
+    name: p.name,
+    avatar: p.avatar,
+    color: p.color,
+    score: gameState.scores[p.id] || 0,
+    isMe: p.id === myId,
+  }));
+
   async function handlePlayAgain() {
     if (!session || !isHost) return;
     setRestarting(true);
@@ -398,6 +407,8 @@ function LeaderboardView({
           />
         ))}
       </div>
+
+      <Podium players={podiumPlayers} />
 
       <div className="space-y-3 mb-8 relative">
         {sorted.map((player, index) => {

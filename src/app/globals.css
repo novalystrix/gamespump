@@ -177,3 +177,12 @@ input, button, select, textarea {
 .animate-correct-glow {
   animation: correct-glow 1s ease-in-out 2;
 }
+
+@keyframes podium-rise {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-podium-rise {
+  animation: podium-rise 0.5s ease-out forwards;
+  opacity: 0;
+}
