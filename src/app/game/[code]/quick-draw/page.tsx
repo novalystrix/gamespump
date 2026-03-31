@@ -8,6 +8,7 @@ import { Player } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CrownIcon } from '@/components/icons/GameIcons';
 import { ShareResults } from '@/components/ShareResults';
+import { HowToPlay } from '@/components/HowToPlay';
 
 const ROUND_TIME = 30;
 
@@ -606,6 +607,7 @@ export default function QuickDrawPage({ params }: { params: { code: string } }) 
   const [scorePopup, setScorePopup] = useState<{ points: number; key: number } | null>(null);
   const [previousScores, setPreviousScores] = useState<Record<string, number>>({});
   const [error, setError] = useState('');
+  const [roomEnded, setRoomEnded] = useState(false);
 
   const drawingCanvasRef = useRef<DrawingCanvasHandle>(null);
   const guessInputRef = useRef<HTMLInputElement>(null);
@@ -628,6 +630,10 @@ export default function QuickDrawPage({ params }: { params: { code: string } }) 
         const data = await res.json();
         if (data.error === 'No active game') {
           router.push(`/room/${params.code}`);
+          return;
+        }
+        if (res.status === 404) {
+          setRoomEnded(true);
           return;
         }
         setError('Failed to load game');
@@ -791,6 +797,24 @@ export default function QuickDrawPage({ params }: { params: { code: string } }) 
 
   // ── Loading / error states ────────────────────────────────────────────────
 
+  if (roomEnded) {
+    return (
+      <main className="min-h-[100dvh] flex items-center justify-center px-6">
+        <div className="text-center">
+          <div className="text-4xl mb-4">🏁</div>
+          <h2 className="text-xl font-display font-bold text-white mb-2">This room has ended</h2>
+          <p className="text-white/50 text-sm mb-6">The game session is no longer available.</p>
+          <button
+            onClick={() => router.push('/')}
+            className="px-6 py-3 rounded-xl glass text-white font-semibold"
+          >
+            Go Home
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   if (error) {
     return (
       <main className="min-h-[100dvh] flex items-center justify-center px-6">
@@ -827,6 +851,11 @@ export default function QuickDrawPage({ params }: { params: { code: string } }) 
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-32 -left-32 w-80 h-80 bg-violet-600/15 rounded-full blur-3xl" />
         <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-fuchsia-600/10 rounded-full blur-3xl" />
+      </div>
+
+      {/* How to Play */}
+      <div className="fixed top-4 right-4 z-40">
+        <HowToPlay gameId="quick-draw" />
       </div>
 
       <div className="relative z-10 w-full max-w-sm mx-auto flex flex-col flex-1">
