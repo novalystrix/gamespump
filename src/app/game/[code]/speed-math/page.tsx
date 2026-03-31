@@ -11,6 +11,7 @@ import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { ShareResults } from '@/components/ShareResults';
 import { HowToPlay } from '@/components/HowToPlay';
 import { Podium } from '@/components/Podium';
+import { GameSummary } from '@/components/GameSummary';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
 
@@ -323,6 +324,13 @@ function LeaderboardView({
       </div>
 
       <Podium players={podiumPlayers} />
+
+      <GameSummary stats={[
+        { emoji: '👥', label: 'Players', value: `${gameState.players.length} battled` },
+        { emoji: '📊', label: 'Total Points', value: `${Object.values(gameState.scores).reduce((a: number, b: number) => a + b, 0)}` },
+        { emoji: '🏆', label: 'Top Score', value: `${sorted[0] ? gameState.scores[sorted[0].id] || 0 : 0} pts` },
+        { emoji: '🧮', label: 'Problems', value: `${gameState.totalQuestions} solved` },
+      ]} />
 
       <div className="space-y-3 mb-8 relative">
         {sorted.map((player, index) => {
