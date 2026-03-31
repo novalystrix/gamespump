@@ -10,6 +10,64 @@ import { CrownIcon } from '@/components/icons/GameIcons';
 import { ShareResults } from '@/components/ShareResults';
 import { HowToPlay } from '@/components/HowToPlay';
 
+function playSound(name: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const now = ctx.currentTime;
+
+    if (name === 'vote') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(500, now);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      osc.start(now); osc.stop(now + 0.06);
+    } else if (name === 'reveal') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(330, now);
+      osc.frequency.linearRampToValueAtTime(440, now + 0.3);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+    } else if (name === 'majority') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, now);
+      osc.frequency.setValueAtTime(659, now + 0.15);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+    } else if (name === 'minority') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(200, now);
+      osc.frequency.linearRampToValueAtTime(150, now + 0.2);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.start(now); osc.stop(now + 0.2);
+    } else if (name === 'countdown') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(440, now);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      osc.start(now); osc.stop(now + 0.08);
+    } else if (name === 'win') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, now);
+      osc.frequency.setValueAtTime(659, now + 0.15);
+      osc.frequency.setValueAtTime(784, now + 0.3);
+      osc.frequency.setValueAtTime(1047, now + 0.45);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      osc.start(now); osc.stop(now + 0.6);
+    }
+  } catch {
+    // AudioContext blocked or unavailable — silently ignore
+  }
+}
+
 const VOTE_TIME = 10; // seconds
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -40,11 +98,18 @@ interface ThisOrThatState {
 
 function TimerBar({ startedAt }: { startedAt: number }) {
   const [remaining, setRemaining] = useState(VOTE_TIME);
+  const lastCountdownTickRef = useRef(-1);
 
   useEffect(() => {
     const interval = setInterval(() => {
       const elapsed = (Date.now() - startedAt) / 1000;
-      setRemaining(Math.max(0, VOTE_TIME - elapsed));
+      const next = Math.max(0, VOTE_TIME - elapsed);
+      setRemaining(next);
+      const secs = Math.ceil(next);
+      if (next > 0 && next <= 3 && secs !== lastCountdownTickRef.current) {
+        lastCountdownTickRef.current = secs;
+        playSound('countdown');
+      }
     }, 50);
     return () => clearInterval(interval);
   }, [startedAt]);
@@ -401,6 +466,7 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
   const prevRoundRef = useRef<number>(-1);
   const autoAdvanceRef = useRef<NodeJS.Timeout | null>(null);
   const timerExpiredRef = useRef(false);
+  const prevPhaseRef = useRef<string | null>(null);
 
   const fetchGameState = useCallback(async () => {
     try {
@@ -507,6 +573,25 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
   }, [gameState?.phase, gameState?.currentRound, params.code]);
 
   useEffect(() => {
+    if (!gameState) return;
+    if (gameState.phase === 'results' && prevPhaseRef.current === 'voting') {
+      playSound('reveal');
+      if (myVote !== null) {
+        const answers = gameState.answers as Record<string, 'A' | 'B'>;
+        const countA = gameState.players.filter(p => answers[p.id] === 'A').length;
+        const countB = gameState.players.filter(p => answers[p.id] === 'B').length;
+        const majorityIsA = countA >= countB;
+        const inMajority = (myVote === 'A' && majorityIsA) || (myVote === 'B' && !majorityIsA);
+        setTimeout(() => playSound(inMajority ? 'majority' : 'minority'), 350);
+      }
+    } else if (gameState.phase === 'leaderboard' && prevPhaseRef.current !== 'leaderboard') {
+      playSound('win');
+    }
+    prevPhaseRef.current = gameState.phase;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.phase]);
+
+  useEffect(() => {
     if (gameState?.phase === 'leaderboard' && session?.playerId) {
       saveGameResult({
         gameType: 'this-or-that',
@@ -521,6 +606,7 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
   async function submitVote(choice: 'A' | 'B') {
     if (!session || myVote !== null || !gameState || gameState.phase !== 'voting') return;
     setMyVote(choice);
+    playSound('vote');
 
     await fetch(`/api/rooms/${params.code}/vote`, {
       method: 'POST',
