@@ -175,6 +175,15 @@ export default function Home() {
           </div>
           <p className="text-xl font-display font-semibold text-white/80 mb-1">Party Games. Instant Fun.</p>
           <p className="text-white/35 text-sm font-body">No signup. No downloads. Pick a name. Play with friends.</p>
+          {gamesPlayed > 0 && (
+            <button
+              onClick={() => router.push('/stats')}
+              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-white/50 text-xs font-body hover:text-white/70 hover:bg-white/10 transition-all [touch-action:manipulation]"
+            >
+              <span>📊</span>
+              Stats
+            </button>
+          )}
         </div>
 
         {/* Join a Game */}

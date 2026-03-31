@@ -38,7 +38,7 @@ export function saveGameResult(result: GameResult): void {
       (r) => !(r.roomCode === result.roomCode && r.gameType === result.gameType)
     );
     if (isNew) incrementGamesPlayed();
-    const updated = [result, ...deduped].slice(0, 5);
+    const updated = [result, ...deduped].slice(0, 20);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
   } catch {}
 }
@@ -51,4 +51,33 @@ export function getGameHistory(): GameResult[] {
   } catch {
     return [];
   }
+}
+
+export interface PlayerStats {
+  totalGames: number;
+  favoriteGame: string;
+  bestScoreByGame: Record<string, number>;
+  gamesPerType: Record<string, number>;
+  totalScore: number;
+  averageScore: number;
+}
+
+export function getPlayerStats(): PlayerStats {
+  const history = getGameHistory();
+  const totalGames = getGamesPlayed();
+
+  const gamesPerType: Record<string, number> = {};
+  const bestScoreByGame: Record<string, number> = {};
+  let totalScore = 0;
+
+  for (const r of history) {
+    gamesPerType[r.gameType] = (gamesPerType[r.gameType] ?? 0) + 1;
+    bestScoreByGame[r.gameType] = Math.max(bestScoreByGame[r.gameType] ?? 0, r.score);
+    totalScore += r.score;
+  }
+
+  const favoriteGame = Object.entries(gamesPerType).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+  const averageScore = history.length > 0 ? Math.round(totalScore / history.length) : 0;
+
+  return { totalGames, favoriteGame, bestScoreByGame, gamesPerType, totalScore, averageScore };
 }
