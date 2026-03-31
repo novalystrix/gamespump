@@ -87,7 +87,17 @@ function playBeep(freq: number, duration = 0.12) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function PlayerCard({ player, isCurrentUser }: { player: Player; isCurrentUser: boolean }) {
+function PlayerCard({
+  player,
+  isCurrentUser,
+  isReadyOverride,
+}: {
+  player: Player;
+  isCurrentUser: boolean;
+  isReadyOverride?: boolean;
+}) {
+  const showReady = player.isHost || (isReadyOverride !== undefined ? isReadyOverride : player.isReady);
+
   return (
     <div
       className={`flex items-center gap-3 p-3 rounded-xl transition-all animate-slide-in-right
@@ -104,6 +114,11 @@ function PlayerCard({ player, isCurrentUser }: { player: Player; isCurrentUser: 
           <span className="font-semibold text-sm text-white truncate">{player.name}</span>
           {player.isHost && (
             <CrownIcon className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+          )}
+          {showReady && (
+            <span className="animate-pulse flex-shrink-0">
+              <CheckIcon className="w-3.5 h-3.5 text-emerald-400" />
+            </span>
           )}
         </div>
         <span className="text-xs text-emerald-400">In game</span>
@@ -284,11 +299,22 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const [countdown, setCountdown] = useState<3 | 2 | 1 | 'GO!' | null>(null);
   const countdownActive = useRef(false);
 
+  // Ready state
+  const [isReady, setIsReady] = useState(false);
+  // Auto-start countdown (separate from the main 3-2-1-GO countdown)
+  const [autoStart, setAutoStart] = useState<number | null>(null);
+  const autoStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [session] = useState(() => typeof window !== 'undefined' ? getSession() : null);
   const currentPlayer = room?.players.find(p => p.id === session?.playerId);
   const isHost = currentPlayer?.isHost || false;
   const playerCount = room?.players.length || 0;
   const canStart = isHost && playerCount >= 2 && room?.selectedGame;
+
+  // All-ready detection
+  const nonHostPlayers = room?.players.filter(p => !p.isHost) ?? [];
+  const allNonHostReady = nonHostPlayers.length > 0 && nonHostPlayers.every(p => p.isReady);
+  const allReadyAndCanStart = !!(isHost && allNonHostReady && canStart);
 
   const fetchRoom = useCallback(async () => {
     try {
@@ -339,6 +365,43 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdown]);
 
+  // Auto-start effect — triggers when all non-host players are ready
+  useEffect(() => {
+    if (!allReadyAndCanStart) {
+      // Cancel any pending auto-start
+      if (autoStartTimerRef.current) {
+        clearTimeout(autoStartTimerRef.current);
+        autoStartTimerRef.current = null;
+      }
+      setAutoStart(null);
+      return;
+    }
+
+    // Begin the auto-start countdown if not already running
+    setAutoStart(prev => prev === null ? 3 : prev);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allReadyAndCanStart]);
+
+  // Auto-start tick
+  useEffect(() => {
+    if (autoStart === null) return;
+
+    if (autoStart === 0) {
+      handleStart();
+      setAutoStart(null);
+      return;
+    }
+
+    autoStartTimerRef.current = setTimeout(() => {
+      setAutoStart(prev => (prev !== null && prev > 0) ? prev - 1 : null);
+    }, 1000);
+
+    return () => {
+      if (autoStartTimerRef.current) clearTimeout(autoStartTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
+
   async function selectGame(gameId: string) {
     if (!isHost) return;
     await fetch(`/api/rooms/${params.code}/game`, {
@@ -382,6 +445,25 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     });
     countdownActive.current = true;
     setCountdown(3);
+  }
+
+  async function toggleReady() {
+    if (!session) return;
+    const newReady = !isReady;
+    setIsReady(newReady);
+    await fetch(`/api/rooms/${params.code}/ready`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: session.playerId, ready: newReady }),
+    });
+  }
+
+  function cancelAutoStart() {
+    if (autoStartTimerRef.current) {
+      clearTimeout(autoStartTimerRef.current);
+      autoStartTimerRef.current = null;
+    }
+    setAutoStart(null);
   }
 
   if (error) {
@@ -475,6 +557,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 key={player.id}
                 player={player}
                 isCurrentUser={player.id === session?.playerId}
+                isReadyOverride={player.id === session?.playerId ? isReady : undefined}
               />
             ))}
             {room.players.length === 0 && (
@@ -483,6 +566,26 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               </div>
             )}
           </div>
+
+          {/* Ready toggle for non-host players */}
+          {!isHost && (
+            <div className="mt-3">
+              <button
+                onClick={toggleReady}
+                className={`w-full py-3 px-6 rounded-2xl font-display font-semibold
+                  active:scale-[0.98] transition-all duration-200 [touch-action:manipulation]
+                  flex items-center justify-center gap-2
+                  ${isReady
+                    ? 'bg-white/10 ring-1 ring-white/20 text-white/50'
+                    : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/25'
+                  }`}
+              >
+                {isReady && <CheckIcon className="w-4 h-4" />}
+                {isReady ? 'Not Ready' : 'Ready!'}
+              </button>
+            </div>
+          )}
+
           {/* Rotating tips */}
           <WaitingTips gameId={room.selectedGame} />
         </div>
@@ -536,27 +639,49 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           )}
 
           {isHost && (
-            <button
-              disabled={!canStart}
-              onClick={handleStart}
-              className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
-                bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white
-                shadow-lg shadow-purple-500/25
-                disabled:opacity-30 disabled:cursor-not-allowed
-                active:scale-[0.98] transition-all duration-200 [touch-action:manipulation]"
-            >
-              {canStart
-                ? 'Start Game!'
-                : playerCount < 2
-                  ? `Waiting for players... (${playerCount}/2)`
-                  : 'Pick a game to start'
-              }
-            </button>
+            <>
+              {/* All ready banner */}
+              {allReadyAndCanStart && (
+                <div className="px-4 py-3 rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-500/30 text-center animate-scale-in">
+                  <p className="text-emerald-400 font-semibold text-sm flex items-center justify-center gap-1.5">
+                    <CheckIcon className="w-4 h-4" />
+                    Everyone is ready!
+                  </p>
+                  {autoStart !== null && (
+                    <p className="text-emerald-400/70 text-xs mt-1">
+                      Starting in {autoStart}…
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <button
+                disabled={!canStart}
+                onClick={autoStart !== null ? cancelAutoStart : handleStart}
+                className={`w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
+                  bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white
+                  shadow-lg shadow-purple-500/25
+                  disabled:opacity-30 disabled:cursor-not-allowed
+                  active:scale-[0.98] transition-all duration-200 [touch-action:manipulation]
+                  ${allReadyAndCanStart ? 'animate-pulse' : ''}`}
+              >
+                {autoStart !== null
+                  ? `Wait (Starting in ${autoStart}…)`
+                  : canStart
+                    ? 'Start Game!'
+                    : playerCount < 2
+                      ? `Waiting for players... (${playerCount}/2)`
+                      : 'Pick a game to start'
+                }
+              </button>
+            </>
           )}
 
           {!isHost && (
             <div className="text-center py-3">
-              <p className="text-white/30 text-sm">Waiting for host to start...</p>
+              <p className="text-white/30 text-sm">
+                {isReady ? 'Waiting for host to start...' : 'Press Ready when you\'re set!'}
+              </p>
             </div>
           )}
 
