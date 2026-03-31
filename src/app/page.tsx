@@ -365,6 +365,28 @@ export default function Home() {
           </div>
         )}
 
+        {/* Share / Invite */}
+        <div className="flex justify-center mb-6">
+          <button
+            onClick={async () => {
+              const shareData = {
+                title: 'GamesPump — Party Games',
+                text: '🎮 Free party games — no signup, no downloads. Just play!',
+                url: 'https://gamespump.onrender.com',
+              };
+              if (navigator.share) {
+                try { await navigator.share(shareData); } catch {}
+              } else {
+                await navigator.clipboard.writeText('🎮 GamesPump — Free party games! https://gamespump.onrender.com');
+              }
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full glass text-white/60 text-sm font-semibold hover:text-white hover:bg-white/10 active:scale-[0.97] transition-all"
+          >
+            <span>📤</span>
+            Invite Friends
+          </button>
+        </div>
+
         {/* Footer */}
         <footer className="text-center text-white/20 text-xs font-body pt-4 pb-2">
           Made with 🎮 by GamesPump

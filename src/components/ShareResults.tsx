@@ -6,17 +6,44 @@ export function ShareResults({
   gameName,
   winnerName,
   winnerScore,
+  roomCode,
 }: {
   gameName: string;
   winnerName: string;
   winnerScore: number;
+  roomCode?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
-  function share() {
-    const text = `🎮 GamesPump — ${gameName}\n🏆 Winner: ${winnerName} (${winnerScore} pts)\nJoin us: https://gamespump.onrender.com`;
-    navigator.clipboard.writeText(text);
-    trackShare("clipboard", gameName);
+  async function share() {
+    const text = `🎮 GamesPump — ${gameName}\n🏆 Winner: ${winnerName} (${winnerScore} pts)\nPlay with us!`;
+    const url = roomCode
+      ? `https://gamespump.onrender.com/join/${roomCode}`
+      : 'https://gamespump.onrender.com';
+
+    // Try native Web Share API first (mobile share sheets)
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `GamesPump — ${gameName}`,
+          text,
+          url,
+        });
+        trackShare('native', gameName);
+        return;
+      } catch {
+        // User cancelled or not supported — fall through to clipboard
+      }
+    }
+
+    // Fallback: copy to clipboard
+    const fullText = `${text}\n${url}`;
+    try {
+      await navigator.clipboard.writeText(fullText);
+    } catch {
+      // Clipboard API blocked — ignore
+    }
+    trackShare('clipboard', gameName);
     try { localStorage.setItem('gamespump_shared', 'true'); } catch {}
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     siteName: "GamesPump",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og",
         width: 1200,
         height: 630,
         alt: "GamesPump — Party Games for Everyone",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "GamesPump — Party Games for Everyone",
     description: "No signup. No downloads. Pick a name. Play with friends.",
-    images: ["/og-image.png"],
+    images: ["/og"],
   },
 };
 
