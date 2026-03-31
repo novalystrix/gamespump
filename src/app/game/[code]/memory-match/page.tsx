@@ -193,7 +193,24 @@ function LeaderboardView({
       <h2 className="font-display font-bold text-3xl text-white mb-2">Game Over!</h2>
       <p className="text-white/40 text-sm mb-8">Final Scores</p>
 
-      <div className="space-y-3 mb-8">
+      {/* Confetti-style decorations */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-2 h-2 rounded-full animate-confetti"
+            style={{
+              left: `${10 + Math.random() * 80}%`,
+              top: '-5%',
+              backgroundColor: ['#a855f7', '#ec4899', '#f97316', '#22d3ee', '#34d399', '#facc15'][i % 6],
+              animationDelay: `${i * 0.15}s`,
+              animationDuration: `${1.5 + Math.random() * 1.5}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="space-y-3 mb-8 relative">
         {sorted.map((player, index) => {
           const isMe = player.id === myId;
           const isWinner = index === 0;
