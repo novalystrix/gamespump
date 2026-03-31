@@ -8,6 +8,7 @@ import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CopyIcon, CrownIcon, CheckIcon, UsersIcon, ClockIcon } from '@/components/icons/GameIcons';
 import { gameIconMap } from '@/components/icons/GameIcons';
 import Loading from '@/components/Loading';
+import { QRCode } from '@/components/QRCode';
 
 // ─── Game tips ────────────────────────────────────────────────────────────────
 
@@ -408,6 +409,9 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   }
 
   const selectedGameInfo = GAMES.find(g => g.id === room.selectedGame);
+  const maxPlayers = selectedGameInfo?.maxPlayers ?? 8;
+  const showQR = playerCount < maxPlayers;
+  const joinUrl = `https://gamespump.onrender.com/join/${params.code}`;
 
   return (
     <main className="min-h-[100dvh] flex flex-col px-6 py-8 relative">
@@ -435,6 +439,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           </button>
           {copied && (
             <p className="text-emerald-400 text-xs mt-1 animate-scale-in">Copied!</p>
+          )}
+          {showQR && (
+            <div className="mt-3 flex flex-col items-center gap-1">
+              <QRCode url={joinUrl} size={128} />
+              <p className="text-white/25 text-xs">Scan to join</p>
+            </div>
           )}
         </div>
 

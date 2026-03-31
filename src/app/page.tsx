@@ -98,6 +98,7 @@ export default function Home() {
   const [history, setHistory] = useState<GameResult[]>([]);
   const [gamesPlayed, setGamesPlayed] = useState(0);
   const [hoveredGame, setHoveredGame] = useState<string | null>(null);
+  const [luckyLoading, setLuckyLoading] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> } | null>(null);
   const [showInstall, setShowInstall] = useState(false);
 
@@ -153,6 +154,38 @@ export default function Home() {
       console.error('Failed to create room', err);
     } finally {
       setCreating(null);
+    }
+  }
+
+  async function handleFeelingLucky() {
+    if (luckyLoading || creating) return;
+    setLuckyLoading(true);
+    try {
+      let session = getSession();
+      if (!session) {
+        const playerId = generatePlayerId();
+        session = { playerId, name: '', avatar: 'crystal', color: '#a855f7' };
+        saveSession(session);
+      }
+      const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)];
+      const res = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hostId: session.playerId }),
+      });
+      const data = await res.json();
+      if (data.code) {
+        await fetch(`/api/rooms/${data.code}/game`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameId: randomGame.id }),
+        });
+        router.push(`/join/${data.code}?host=true`);
+      }
+    } catch (err) {
+      console.error('Failed to create room', err);
+    } finally {
+      setLuckyLoading(false);
     }
   }
 
@@ -230,6 +263,28 @@ export default function Home() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Feeling Lucky */}
+        <div className="mb-6">
+          <button
+            onClick={handleFeelingLucky}
+            disabled={luckyLoading || creating !== null}
+            className="w-full py-3 px-6 rounded-2xl font-display font-semibold
+              bg-gradient-to-r from-purple-600 to-pink-500 text-white
+              shadow-lg shadow-purple-500/20
+              disabled:opacity-50 disabled:cursor-not-allowed
+              active:scale-[0.98] transition-all duration-200 [touch-action:manipulation]"
+          >
+            {luckyLoading ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-block animate-spin">🎲</span>
+                Rolling...
+              </span>
+            ) : (
+              '🎲 Feeling Lucky'
+            )}
+          </button>
         </div>
 
         {/* Game grid */}
