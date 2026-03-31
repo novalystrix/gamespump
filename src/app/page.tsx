@@ -163,7 +163,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-[100dvh] flex flex-col items-center px-6 py-10 relative">
+    <main id="main-content" className="min-h-[100dvh] flex flex-col items-center px-6 py-10 relative">
       <BackgroundDecor />
 
       <div className="relative z-10 w-full max-w-sm mx-auto page-transition">
@@ -209,6 +209,7 @@ export default function Home() {
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   placeholder="1234"
+                  aria-label="Room code"
                   autoFocus
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3
                     text-center text-2xl font-display tracking-[0.3em] text-white
@@ -240,6 +241,7 @@ export default function Home() {
                 key={game.id}
                 onClick={() => handleHostGame(game.id)}
                 disabled={creating !== null}
+                aria-label={`Host ${game.name}`}
                 onMouseEnter={() => setHoveredGame(game.id)}
                 onMouseLeave={() => setHoveredGame(null)}
                 onFocus={() => setHoveredGame(game.id)}
