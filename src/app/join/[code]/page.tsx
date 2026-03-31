@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getSession, saveSession, generatePlayerId } from '@/lib/session';
+import { trackPageView, trackRoomJoined } from "@/lib/analytics";
 import { AVATARS, PLAYER_COLORS } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { ChevronLeftIcon, CheckIcon } from '@/components/icons/GameIcons';
@@ -19,6 +20,7 @@ export default function JoinPage({ params }: { params: { code: string } }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    trackPageView("join");
     const session = getSession();
     if (session) {
       if (session.name) setName(session.name);
@@ -68,6 +70,7 @@ export default function JoinPage({ params }: { params: { code: string } }) {
         return;
       }
 
+      trackRoomJoined(params.code);
       router.push(`/room/${params.code}`);
     } catch {
       setError('Something went wrong. Try again.');

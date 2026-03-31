@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession } from '@/lib/session';
+import { trackPageView, trackGameStart } from "@/lib/analytics";
 import { Room, GAMES, Player } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CopyIcon, CrownIcon, CheckIcon, UsersIcon, ClockIcon } from '@/components/icons/GameIcons';
@@ -336,6 +337,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   }, [params.code, router]);
 
   useEffect(() => {
+    trackPageView("room");
     fetchRoom();
     const interval = setInterval(fetchRoom, 2000);
     return () => clearInterval(interval);
@@ -443,6 +445,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: session.playerId }),
     });
+    trackGameStart(room.selectedGame!, room.players.length);
     countdownActive.current = true;
     setCountdown(3);
   }

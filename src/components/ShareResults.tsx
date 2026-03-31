@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { trackShare } from "@/lib/analytics";
 
 export function ShareResults({
   gameName,
@@ -15,6 +16,7 @@ export function ShareResults({
   function share() {
     const text = `🎮 GamesPump — ${gameName}\n🏆 Winner: ${winnerName} (${winnerScore} pts)\nJoin us: https://gamespump.onrender.com`;
     navigator.clipboard.writeText(text);
+    trackShare("clipboard", gameName);
     try { localStorage.setItem('gamespump_shared', 'true'); } catch {}
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

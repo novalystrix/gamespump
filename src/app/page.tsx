@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getSession, generatePlayerId, saveSession } from '@/lib/session';
 import { getGameHistory, getGamesPlayed, GameResult } from '@/lib/gameHistory';
 import { GAMES } from '@/lib/types';
+import { trackPageView, trackRoomCreated } from "@/lib/analytics";
 import { GamepadIcon } from '@/components/icons/GameIcons';
 
 function BackgroundDecor() {
@@ -104,6 +105,7 @@ export default function Home() {
   const [showInstall, setShowInstall] = useState(false);
 
   useEffect(() => {
+    trackPageView("home");
     setHistory(getGameHistory());
     setGamesPlayed(getGamesPlayed());
   }, []);
@@ -144,6 +146,7 @@ export default function Home() {
       });
       const data = await res.json();
       if (data.code) {
+        trackRoomCreated(data.code, gameId);
         await fetch(`/api/rooms/${data.code}/game`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -176,6 +179,7 @@ export default function Home() {
       });
       const data = await res.json();
       if (data.code) {
+        trackRoomCreated(data.code, randomGame.id);
         await fetch(`/api/rooms/${data.code}/game`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

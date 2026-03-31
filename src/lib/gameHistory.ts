@@ -1,3 +1,4 @@
+import { trackGameEnd } from "./analytics";
 const HISTORY_KEY = 'gamespump_history';
 const TOTAL_GAMES_KEY = 'gamespump_total_games';
 const MAX_STREAK_KEY = 'gamespump_max_streak';
@@ -59,7 +60,10 @@ export function saveGameResult(result: GameResult): void {
     const isNew = existing.every(
       (r) => !(r.roomCode === result.roomCode && r.gameType === result.gameType)
     );
-    if (isNew) incrementGamesPlayed();
+    if (isNew) {
+      incrementGamesPlayed();
+      trackGameEnd(result.gameType, result.score, result.roomCode);
+    }
     const updated = [result, ...deduped].slice(0, 20);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
   } catch {}
