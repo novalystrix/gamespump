@@ -133,7 +133,7 @@ function GameCard({
     >
       <div className="w-full h-28 rounded-xl overflow-hidden mb-3 bg-white/5">
         <img
-          src={`/images/games/${game.id}.png`}
+          src={`/images/games/${game.id}.webp`}
           alt={game.name}
           className="w-full h-full object-cover"
           onError={(e) => {
@@ -178,7 +178,7 @@ function GamePreviewCard({
       {/* Cover image as blurred background */}
       <div className="absolute inset-0">
         <img
-          src={`/images/games/${game.id}.png`}
+          src={`/images/games/${game.id}.webp`}
           alt=""
           aria-hidden
           className="w-full h-full object-cover opacity-20 blur-sm scale-105"
@@ -192,7 +192,7 @@ function GamePreviewCard({
           {/* Thumbnail */}
           <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-white/10">
             <img
-              src={`/images/games/${game.id}.png`}
+              src={`/images/games/${game.id}.webp`}
               alt={game.name}
               className="w-full h-full object-cover"
               onError={(e) => {

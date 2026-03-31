@@ -99,7 +99,7 @@ export default function StatsPage() {
                   <div key={gameType} className="glass rounded-2xl px-4 py-3 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/5 flex-shrink-0">
                       <img
-                        src={`/images/games/${gameType}.png`}
+                        src={`/images/games/${gameType}.webp`}
                         alt={gameType}
                         className="w-full h-full object-cover"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -136,7 +136,7 @@ export default function StatsPage() {
                 <div key={i} className="glass rounded-xl px-3 py-2 flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
                     <img
-                      src={`/images/games/${r.gameType}.png`}
+                      src={`/images/games/${r.gameType}.webp`}
                       alt={r.gameType}
                       className="w-full h-full object-cover"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

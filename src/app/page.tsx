@@ -41,7 +41,7 @@ function RecentGames({ history, onRejoin }: { history: GameResult[]; onRejoin: (
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
                   <img
-                    src={`/images/games/${r.gameType}.png`}
+                    src={`/images/games/${r.gameType}.webp`}
                     alt={r.gameType}
                     className="w-full h-full object-cover"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -308,7 +308,7 @@ export default function Home() {
               >
                 <div className="w-full aspect-[4/3] bg-white/5">
                   <img
-                    src={`/images/games/${game.id}.png`}
+                    src={`/images/games/${game.id}.webp`}
                     alt={game.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {

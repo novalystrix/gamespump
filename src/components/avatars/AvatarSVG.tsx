@@ -25,7 +25,7 @@ export function Avatar({ avatarId, size = 48, className }: AvatarProps & { avata
   const resolved = resolveAvatarId(avatarId);
   return (
     <img
-      src={`/images/avatars/${resolved}.png`}
+      src={`/images/avatars/${resolved}.webp`}
       alt={AVATAR_NAMES[avatarId] ?? avatarId}
       width={size}
       height={size}
