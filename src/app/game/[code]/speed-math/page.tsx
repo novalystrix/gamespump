@@ -45,6 +45,13 @@ function playSound(name: string) {
       gain.gain.setValueAtTime(0.15, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
       osc.start(now); osc.stop(now + 0.08);
+    } else if (name === 'streak-lost') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(280, now);
+      osc.frequency.linearRampToValueAtTime(80, now + 0.45);
+      gain.gain.setValueAtTime(0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      osc.start(now); osc.stop(now + 0.5);
     }
   } catch {
     // AudioContext blocked or unavailable — silently ignore
@@ -411,6 +418,9 @@ export default function SpeedMathPage({ params }: { params: { code: string } }) 
   const [error, setError] = useState('');
   const [roomEnded, setRoomEnded] = useState(false);
   const [previousScores, setPreviousScores] = useState<Record<string, number>>({});
+  const [streak, setStreak] = useState(0);
+  const [streakLost, setStreakLost] = useState(false);
+  const streakRef = useRef(0);
   const prevQuestionRef = useRef<number>(-1);
   const autoAdvanceRef = useRef<NodeJS.Timeout | null>(null);
   const timerExpiredRef = useRef(false);
@@ -520,10 +530,21 @@ export default function SpeedMathPage({ params }: { params: { code: string } }) 
   }, [gameState?.phase, gameState?.currentQuestion, params.code]);
 
   useEffect(() => {
-    if (gameState?.phase === 'results' && myAnswer !== null && gameState.question.correctIndex !== undefined) {
-      if (myAnswer !== gameState.question.correctIndex) {
+    if (gameState?.phase === 'results' && gameState.question.correctIndex !== undefined) {
+      const isCorrect = myAnswer !== null && myAnswer === gameState.question.correctIndex;
+      if (!isCorrect) {
         setShaking(true);
         setTimeout(() => setShaking(false), 300);
+        if (streakRef.current >= 3) {
+          setStreakLost(true);
+          playSound('streak-lost');
+          setTimeout(() => setStreakLost(false), 2500);
+        }
+        streakRef.current = 0;
+        setStreak(0);
+      } else {
+        streakRef.current += 1;
+        setStreak(streakRef.current);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -662,6 +683,31 @@ export default function SpeedMathPage({ params }: { params: { code: string } }) 
               </div>
             )}
 
+            {/* Streak badge */}
+            {streak >= 2 && gameState.phase === 'question' && (
+              <div className="flex justify-center mb-4">
+                <style>{`
+                  @keyframes streak-pulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.08); }
+                  }
+                  .animate-streak-pulse { animation: streak-pulse 1.2s ease-in-out infinite; }
+                  @keyframes streak-lost-fade {
+                    0% { opacity: 1; transform: translateY(0); }
+                    70% { opacity: 1; transform: translateY(-4px); }
+                    100% { opacity: 0; transform: translateY(-8px); }
+                  }
+                  .animate-streak-lost { animation: streak-lost-fade 2.5s ease-out forwards; }
+                `}</style>
+                <div className="animate-streak-pulse flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/15 border border-orange-500/30">
+                  <span className={streak >= 5 ? 'text-2xl' : streak >= 3 ? 'text-xl' : 'text-lg'}>🔥</span>
+                  <span className="font-display font-bold text-sm bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent">
+                    {streak} streak!
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Math problem */}
             {gameState.phase === 'question' && (
               <>
@@ -709,12 +755,27 @@ export default function SpeedMathPage({ params }: { params: { code: string } }) 
 
             {/* Results phase */}
             {gameState.phase === 'results' && (
-              <ResultsView
-                gameState={gameState}
-                myId={session?.playerId || ''}
-                previousScores={previousScores}
-                myAnswer={myAnswer}
-              />
+              <>
+                {streakLost && (
+                  <div className="text-center mb-3">
+                    <style>{`
+                      @keyframes streak-lost-fade {
+                        0% { opacity: 1; transform: translateY(0); }
+                        70% { opacity: 1; transform: translateY(-4px); }
+                        100% { opacity: 0; transform: translateY(-8px); }
+                      }
+                      .animate-streak-lost { animation: streak-lost-fade 2.5s ease-out forwards; }
+                    `}</style>
+                    <span className="animate-streak-lost inline-block text-sm font-bold text-rose-400">💔 Streak lost!</span>
+                  </div>
+                )}
+                <ResultsView
+                  gameState={gameState}
+                  myId={session?.playerId || ''}
+                  previousScores={previousScores}
+                  myAnswer={myAnswer}
+                />
+              </>
             )}
           </>
         )}
