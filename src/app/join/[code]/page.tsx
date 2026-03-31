@@ -141,9 +141,9 @@ export default function JoinPage({ params }: { params: { code: string } }) {
               <button
                 key={avatar.id}
                 onClick={() => setSelectedAvatar(avatar.id)}
-                className={`relative aspect-square rounded-xl flex items-center justify-center transition-all
-                  ${selectedAvatar === avatar.id 
-                    ? 'bg-white/10 ring-2 ring-purple-400 scale-105' 
+                className={`relative aspect-square rounded-xl flex items-center justify-center transition-all min-h-[44px] [touch-action:manipulation]
+                  ${selectedAvatar === avatar.id
+                    ? 'bg-white/10 ring-2 ring-purple-400 scale-105'
                     : 'bg-white/5 hover:bg-white/8 active:scale-95'
                   }`}
               >
@@ -166,9 +166,9 @@ export default function JoinPage({ params }: { params: { code: string } }) {
               <button
                 key={color}
                 onClick={() => setSelectedColor(color)}
-                className={`w-10 h-10 rounded-full transition-all
-                  ${selectedColor === color 
-                    ? 'ring-2 ring-white ring-offset-2 ring-offset-[#0d0221] scale-110' 
+                className={`w-11 h-11 rounded-full transition-all [touch-action:manipulation]
+                  ${selectedColor === color
+                    ? 'ring-2 ring-white ring-offset-2 ring-offset-[#0d0221] scale-110'
                     : 'hover:scale-105 active:scale-95'
                   }`}
                 style={{ backgroundColor: color }}

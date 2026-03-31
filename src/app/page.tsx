@@ -98,11 +98,31 @@ export default function Home() {
   const [history, setHistory] = useState<GameResult[]>([]);
   const [gamesPlayed, setGamesPlayed] = useState(0);
   const [hoveredGame, setHoveredGame] = useState<string | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> } | null>(null);
+  const [showInstall, setShowInstall] = useState(false);
 
   useEffect(() => {
     setHistory(getGameHistory());
     setGamesPlayed(getGamesPlayed());
   }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> });
+      setShowInstall(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  async function handleInstall() {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') setShowInstall(false);
+    setInstallPrompt(null);
+  }
 
   async function handleHostGame(gameId: string) {
     if (creating) return;
@@ -190,10 +210,10 @@ export default function Home() {
                 <button
                   onClick={handleJoin}
                   disabled={joinCode.length !== 4}
-                  className="px-6 py-3 rounded-xl font-semibold
+                  className="px-6 py-3 rounded-xl font-semibold min-h-[44px]
                     bg-gradient-to-r from-cyan-500 to-blue-500 text-white
                     disabled:opacity-30 disabled:cursor-not-allowed
-                    active:scale-[0.97] transition-all"
+                    active:scale-[0.97] transition-all [touch-action:manipulation]"
                 >
                   Go
                 </button>
@@ -216,7 +236,7 @@ export default function Home() {
                 onFocus={() => setHoveredGame(game.id)}
                 onBlur={() => setHoveredGame(null)}
                 className={`relative rounded-2xl overflow-hidden text-left transition-all
-                  active:scale-[0.97]
+                  active:scale-[0.97] [touch-action:manipulation]
                   ${creating === game.id ? 'opacity-60' : 'hover:scale-[1.02]'}
                   disabled:cursor-not-allowed`}
               >
@@ -259,6 +279,19 @@ export default function Home() {
         <StatsSection gamesPlayed={gamesPlayed} />
 
         <RecentGames history={history} onRejoin={(code) => router.push(`/join/${code}`)} />
+
+        {/* PWA Install Prompt */}
+        {showInstall && (
+          <div className="flex justify-center mb-4">
+            <button
+              onClick={handleInstall}
+              className="flex items-center gap-2 px-4 py-2 rounded-full glass text-white/50 text-xs font-body hover:text-white/70 hover:bg-white/10 transition-all [touch-action:manipulation]"
+            >
+              <span>📲</span>
+              Install App
+            </button>
+          </div>
+        )}
 
         {/* Footer */}
         <footer className="text-center text-white/20 text-xs font-body pt-4 pb-2">

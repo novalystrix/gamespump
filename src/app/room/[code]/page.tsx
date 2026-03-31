@@ -7,6 +7,7 @@ import { Room, GAMES, Player } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CopyIcon, CrownIcon, CheckIcon, UsersIcon, ClockIcon } from '@/components/icons/GameIcons';
 import { gameIconMap } from '@/components/icons/GameIcons';
+import Loading from '@/components/Loading';
 
 function PlayerCard({ player, isCurrentUser }: { player: Player; isCurrentUser: boolean }) {
   return (
@@ -179,7 +180,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   if (!room) {
     return (
       <main className="min-h-[100dvh] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+        <Loading />
       </main>
     );
   }
@@ -262,7 +263,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             {isHost && (
               <button
                 onClick={() => setShowGames(true)}
-                className="text-xs text-purple-400 px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                className="text-xs text-purple-400 px-3 py-2 min-h-[44px] rounded-lg hover:bg-white/5 transition-colors [touch-action:manipulation]"
               >
                 Change
               </button>
@@ -303,7 +304,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
                 glass text-white
                 hover:bg-white/10
-                active:scale-[0.98] transition-all duration-200"
+                active:scale-[0.98] transition-all duration-200 [touch-action:manipulation]"
             >
               Choose a Game
             </button>
@@ -325,7 +326,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white
                 shadow-lg shadow-purple-500/25
                 disabled:opacity-30 disabled:cursor-not-allowed
-                active:scale-[0.98] transition-all duration-200"
+                active:scale-[0.98] transition-all duration-200 [touch-action:manipulation]"
             >
               {canStart
                 ? 'Start Game!'
