@@ -8,6 +8,7 @@ import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CopyIcon, CrownIcon, CheckIcon, UsersIcon, ClockIcon } from '@/components/icons/GameIcons';
 import { gameIconMap } from '@/components/icons/GameIcons';
 import Loading from '@/components/Loading';
+import { trackPageView, trackGameStart } from '@/lib/analytics';
 import { QRCode } from '@/components/QRCode';
 
 // ─── Game tips ────────────────────────────────────────────────────────────────
@@ -336,10 +337,11 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   }, [params.code, router]);
 
   useEffect(() => {
+    trackPageView(`room/${params.code}`);
     fetchRoom();
     const interval = setInterval(fetchRoom, 2000);
     return () => clearInterval(interval);
-  }, [fetchRoom]);
+  }, [fetchRoom, params.code]);
 
   // Countdown tick logic
   useEffect(() => {
@@ -437,7 +439,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   }
 
   async function handleStart() {
-    if (!canStart || !session) return;
+    if (!canStart || !session || !room?.selectedGame) return;
+    trackGameStart(room.selectedGame, room.players.length, params.code);
     await fetch(`/api/rooms/${params.code}/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -6,6 +6,7 @@ import { getSession, saveSession, generatePlayerId } from '@/lib/session';
 import { AVATARS, PLAYER_COLORS } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { ChevronLeftIcon, CheckIcon } from '@/components/icons/GameIcons';
+import { trackPageView, trackRoomJoined } from '@/lib/analytics';
 
 export default function JoinPage({ params }: { params: { code: string } }) {
   const router = useRouter();
@@ -19,13 +20,14 @@ export default function JoinPage({ params }: { params: { code: string } }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    trackPageView(`join/${params.code}`);
     const session = getSession();
     if (session) {
       if (session.name) setName(session.name);
       if (session.avatar) setSelectedAvatar(session.avatar);
       if (session.color) setSelectedColor(session.color);
     }
-  }, []);
+  }, [params.code]);
 
   async function handleJoin() {
     if (!name.trim()) {
@@ -68,6 +70,7 @@ export default function JoinPage({ params }: { params: { code: string } }) {
         return;
       }
 
+      trackRoomJoined(params.code);
       router.push(`/room/${params.code}`);
     } catch {
       setError('Something went wrong. Try again.');
