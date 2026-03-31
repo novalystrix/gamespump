@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getSession } from '@/lib/session';
 import { getGameHistory, getPlayerStats, GameResult, PlayerStats } from '@/lib/gameHistory';
 import { Avatar } from '@/components/avatars/AvatarSVG';
+import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { PlayerSession } from '@/lib/types';
 
 const GAME_NAMES: Record<string, string> = {
@@ -29,7 +30,9 @@ function BackgroundDecor() {
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="glass rounded-2xl p-4 flex flex-col items-center text-center">
-      <p className="text-2xl font-display font-bold text-white">{value}</p>
+      <p className="text-2xl font-display font-bold text-white">
+        {typeof value === 'number' ? <AnimatedNumber value={value} duration={800} /> : value}
+      </p>
       <p className="text-xs text-white/40 font-body mt-1 uppercase tracking-wider">{label}</p>
     </div>
   );
@@ -82,7 +85,7 @@ export default function StatsPage() {
         {stats && (
           <div className="grid grid-cols-2 gap-3 mb-8">
             <StatCard label="Total Games" value={stats.totalGames} />
-            <StatCard label="Total Score" value={stats.totalScore.toLocaleString()} />
+            <StatCard label="Total Score" value={stats.totalScore} />
             <StatCard label="Favorite Game" value={favoriteGameName} />
             <StatCard label="Avg Score" value={stats.averageScore > 0 ? stats.averageScore : '—'} />
           </div>

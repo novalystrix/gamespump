@@ -7,6 +7,7 @@ import { saveGameResult } from '@/lib/gameHistory';
 import { Player, TriviaAnswer, TriviaReaction } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CrownIcon } from '@/components/icons/GameIcons';
+import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { ShareResults } from '@/components/ShareResults';
 import { HowToPlay } from '@/components/HowToPlay';
 import { Podium } from '@/components/Podium';
@@ -451,7 +452,7 @@ function LeaderboardView({
               </div>
 
               <div className="text-right">
-                <p className="text-xl font-display font-bold text-white">{gameState.scores[player.id] || 0}</p>
+                <p className="text-xl font-display font-bold text-white"><AnimatedNumber value={gameState.scores[player.id] || 0} /></p>
                 <p className="text-xs text-white/30">points</p>
               </div>
             </div>

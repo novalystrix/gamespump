@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar } from "@/components/avatars/AvatarSVG";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 
 export interface PodiumPlayer {
   name: string;
@@ -101,7 +102,7 @@ function PodiumColumn({
           isFirst ? "text-lg" : "text-sm"
         }`}
       >
-        {player.score}
+        <AnimatedNumber value={player.score} />
       </p>
 
       {/* Podium block */}
