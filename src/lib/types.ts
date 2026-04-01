@@ -162,6 +162,7 @@ export interface Room {
   createdAt: number;
   lastActivity: number;
   gameState?: GameState;
+  gameVotes?: Record<string, string>; // playerId -> gameId
 }
 
 export interface GameInfo {

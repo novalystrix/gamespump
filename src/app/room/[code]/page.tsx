@@ -132,10 +132,14 @@ function GameCard({
   game,
   selected,
   onSelect,
+  voteCount,
+  isTopVoted,
 }: {
   game: typeof GAMES[0];
   selected: boolean;
   onSelect: () => void;
+  voteCount?: number;
+  isTopVoted?: boolean;
 }) {
   const Icon = gameIconMap[game.icon];
   return (
@@ -144,7 +148,9 @@ function GameCard({
       className={`relative w-full p-4 rounded-2xl text-left transition-all
         ${selected
           ? 'ring-2 ring-purple-400 bg-white/10 scale-[1.02]'
-          : 'bg-white/[0.03] hover:bg-white/[0.06] active:scale-[0.98]'
+          : isTopVoted
+            ? 'ring-1 ring-amber-400/40 bg-amber-500/5 hover:bg-amber-500/10 active:scale-[0.98]'
+            : 'bg-white/[0.03] hover:bg-white/[0.06] active:scale-[0.98]'
         }`}
     >
       <div className="w-full h-28 rounded-xl overflow-hidden mb-3 bg-white/5">
@@ -173,6 +179,12 @@ function GameCard({
       {selected && (
         <div className="absolute top-3 right-3 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
           <CheckIcon className="w-3.5 h-3.5 text-white" />
+        </div>
+      )}
+      {voteCount && voteCount > 0 && (
+        <div className={`absolute top-3 ${selected ? 'right-11' : 'right-3'} px-2 py-0.5 rounded-full text-xs font-semibold
+          ${isTopVoted ? 'bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/30' : 'bg-white/10 text-white/50'}`}>
+          {voteCount} {voteCount === 1 ? 'vote' : 'votes'}
         </div>
       )}
     </button>
@@ -306,6 +318,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
   const [autoStart, setAutoStart] = useState<number | null>(null);
   const autoStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [myVote, setMyVote] = useState<string | null>(null);
+
   const [session] = useState(() => typeof window !== 'undefined' ? getSession() : null);
   const currentPlayer = room?.players.find(p => p.id === session?.playerId);
   const isHost = currentPlayer?.isHost || false;
@@ -415,6 +429,16 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     setShowGames(false);
   }
 
+  async function voteGame(gameId: string) {
+    if (!session || isHost) return;
+    setMyVote(gameId);
+    await fetch(`/api/rooms/${params.code}/game-vote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: session.playerId, gameId }),
+    });
+  }
+
   function copyCode() {
     navigator.clipboard.writeText(params.code);
     setCopied(true);
@@ -495,6 +519,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
 
   const selectedGameInfo = GAMES.find(g => g.id === room.selectedGame);
   const maxPlayers = selectedGameInfo?.maxPlayers ?? 8;
+
+  const voteCounts: Record<string, number> = {};
+  Object.values(room.gameVotes || {}).forEach(gId => {
+    voteCounts[gId] = (voteCounts[gId] || 0) + 1;
+  });
+  const maxVoteCount = Math.max(0, ...Object.values(voteCounts));
   const showQR = playerCount < maxPlayers;
   const joinUrl = `https://gamespump.onrender.com/join/${params.code}`;
 
@@ -614,6 +644,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     game={game}
                     selected={room.selectedGame === game.id}
                     onSelect={() => selectGame(game.id)}
+                    voteCount={voteCounts[game.id]}
+                    isTopVoted={maxVoteCount > 0 && voteCounts[game.id] === maxVoteCount}
                   />
                 ))}
               </div>
@@ -685,6 +717,24 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               <p className="text-white/30 text-sm">
                 {isReady ? 'Waiting for host to start...' : 'Press Ready when you\'re set!'}
               </p>
+              <div className="mt-3">
+                <p className="text-white/20 text-xs mb-2">Suggest a game</p>
+                <div className="flex flex-wrap gap-1.5 justify-center">
+                  {GAMES.map(game => (
+                    <button
+                      key={game.id}
+                      onClick={() => voteGame(game.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-[0.96] [touch-action:manipulation]
+                        ${myVote === game.id
+                          ? 'bg-purple-500/25 ring-1 ring-purple-400/50 text-purple-300'
+                          : 'bg-white/[0.04] ring-1 ring-white/10 text-white/35 hover:text-white/55'
+                        }`}
+                    >
+                      {myVote === game.id && '✓ '}{game.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

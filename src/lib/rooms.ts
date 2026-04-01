@@ -114,6 +114,15 @@ export function setPlayerReady(code: string, playerId: string, ready: boolean): 
   return room;
 }
 
+export function voteForGame(code: string, playerId: string, gameId: string): Room | null {
+  const room = getRoom(code);
+  if (!room || room.status !== 'waiting') return null;
+  if (!room.gameVotes) room.gameVotes = {};
+  room.gameVotes[playerId] = gameId;
+  room.lastActivity = Date.now();
+  return room;
+}
+
 // ===== MEMORY MATCH LOGIC =====
 
 function initMemoryMatch(room: Room): MemoryMatchGameState {
