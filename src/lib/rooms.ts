@@ -1,4 +1,4 @@
-import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState } from './types';
+import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState, LieDetectorGameState } from './types';
 import { generateRound } from './emoji-sets';
 import { getShuffledQuestions } from './trivia-questions';
 import { getShuffledThisOrThatQuestions } from './this-or-that-questions';
@@ -803,6 +803,9 @@ export function startGame(code: string, hostId: string): Room | null {
     case 'reaction-speed':
       gameState = initReactionSpeed(room);
       break;
+    case 'lie-detector':
+      gameState = initLieDetector(room);
+      break;
     default:
       return null;
   }
@@ -971,6 +974,140 @@ export function submitEmojiBattleAnswer(code: string, playerId: string, roundInd
   
   room.lastActivity = Date.now();
   return room;
+}
+
+// ── Lie Detector ──────────────────────────────────────────────────────────
+
+const LIE_DETECTOR_PROMPTS = [
+  'Share something unusual about your childhood',
+  'Tell us about a hidden talent you have',
+  'Share a surprising fact about yourself',
+  'Tell us about the weirdest food you\'ve ever eaten',
+  'Share something about a celebrity encounter',
+  'Tell us about your most embarrassing moment',
+  'Share a fun fact about where you grew up',
+  'Tell us about a strange hobby you have or had',
+];
+
+function initLieDetector(room: Room): LieDetectorGameState {
+  const speakerOrder = shuffle(room.players.map(p => p.id));
+  const scores: Record<string, number> = {};
+  room.players.forEach(p => { scores[p.id] = 0; });
+  const prompts = shuffle([...LIE_DETECTOR_PROMPTS]);
+
+  return {
+    type: 'lie-detector',
+    currentRound: 0,
+    totalRounds: room.players.length,
+    speakerOrder,
+    currentSpeakerId: speakerOrder[0],
+    prompt: prompts[0],
+    statement: null,
+    speakerTruth: null,
+    votes: {},
+    scores,
+    roundStartedAt: Date.now(),
+    phase: 'statement',
+  };
+}
+
+export function submitStatement(code: string, playerId: string, statement: string, isTrue: boolean): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'lie-detector') return null;
+  const gs = room.gameState as LieDetectorGameState;
+  if (gs.phase !== 'statement') return null;
+  if (gs.currentSpeakerId !== playerId) return null;
+
+  gs.statement = statement;
+  gs.speakerTruth = isTrue;
+  gs.phase = 'voting';
+  gs.roundStartedAt = Date.now();
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function submitLieDetectorVote(code: string, playerId: string, vote: 'truth' | 'lie'): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'lie-detector') return null;
+  const gs = room.gameState as LieDetectorGameState;
+  if (gs.phase !== 'voting') return null;
+  if (playerId === gs.currentSpeakerId) return null; // speaker can't vote
+  if (gs.votes[playerId]) return null; // already voted
+
+  gs.votes[playerId] = { vote, votedAt: Date.now() };
+
+  // Check if all non-speaker players voted
+  const nonSpeakers = room.players.filter(p => p.id !== gs.currentSpeakerId);
+  const allVoted = nonSpeakers.every(p => gs.votes[p.id]);
+  if (allVoted) {
+    gs.phase = 'reveal';
+  }
+
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function forceLieDetectorVoting(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'lie-detector') return null;
+  const gs = room.gameState as LieDetectorGameState;
+  if (gs.phase !== 'voting') return null;
+  gs.phase = 'reveal';
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function advanceLieDetectorPhase(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'lie-detector') return null;
+  const gs = room.gameState as LieDetectorGameState;
+
+  if (gs.phase === 'reveal') {
+    // Calculate scores
+    const truthAnswer = gs.speakerTruth ? 'truth' : 'lie';
+    let fooledCount = 0;
+
+    for (const [pid, voteData] of Object.entries(gs.votes)) {
+      if (voteData.vote === truthAnswer) {
+        // Correct guess
+        const elapsed = voteData.votedAt - gs.roundStartedAt;
+        const speedBonus = Math.max(0, Math.round(50 * (1 - elapsed / 15000)));
+        gs.scores[pid] = (gs.scores[pid] || 0) + 100 + speedBonus;
+      } else {
+        // Fooled
+        fooledCount++;
+      }
+    }
+
+    // Speaker gets 50 pts per fooled voter
+    gs.scores[gs.currentSpeakerId] = (gs.scores[gs.currentSpeakerId] || 0) + 50 * fooledCount;
+
+    gs.phase = 'results';
+    room.lastActivity = Date.now();
+    return room;
+  }
+
+  if (gs.phase === 'results') {
+    const nextRound = gs.currentRound + 1;
+    if (nextRound >= gs.totalRounds) {
+      gs.phase = 'leaderboard';
+      room.status = 'finished';
+    } else {
+      const prompts = shuffle([...LIE_DETECTOR_PROMPTS]);
+      gs.currentRound = nextRound;
+      gs.currentSpeakerId = gs.speakerOrder[nextRound];
+      gs.prompt = prompts[0];
+      gs.statement = null;
+      gs.speakerTruth = null;
+      gs.votes = {};
+      gs.roundStartedAt = Date.now();
+      gs.phase = 'statement';
+    }
+    room.lastActivity = Date.now();
+    return room;
+  }
+
+  return null;
 }
 
 export function advanceEmojiBattle(code: string): Room | null {

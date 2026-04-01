@@ -75,6 +75,16 @@ const GAME_RULES: Record<string, { name: string; rules: string[]; scoring: strin
     ],
     scoring: '1st tap = 100pts, 2nd = 75pts, 3rd = 50pts, rest = 25pts.',
   },
+  'lie-detector': {
+    name: 'Lie Detector',
+    rules: [
+      'Each player takes a turn as the speaker.',
+      'The speaker makes a statement — true or a lie.',
+      'Everyone else votes: is it truth or a lie?',
+      'Correct guessers earn points. The speaker earns points for fooling people!',
+    ],
+    scoring: 'Correct guess = 100pts + speed bonus. Speaker = 50pts per player fooled.',
+  },
 };
 
 interface HowToPlayProps {

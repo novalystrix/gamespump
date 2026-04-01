@@ -164,7 +164,23 @@ export interface ReactionSpeedGameState {
   phase: 'waiting' | 'go' | 'results' | 'leaderboard';
 }
 
-export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState | WordBlitzGameState | QuickDrawGameState | EmojiBattleGameState | ReactionSpeedGameState;
+// Lie Detector types
+export interface LieDetectorGameState {
+  type: 'lie-detector';
+  currentRound: number;
+  totalRounds: number;
+  speakerOrder: string[]; // playerId rotation
+  currentSpeakerId: string;
+  prompt: string; // current round's prompt suggestion
+  statement: string | null; // what the speaker typed
+  speakerTruth: boolean | null; // true = statement is true, false = it's a lie (hidden from others)
+  votes: Record<string, { vote: 'truth' | 'lie'; votedAt: number }>; // playerId -> vote
+  scores: Record<string, number>;
+  roundStartedAt: number;
+  phase: 'statement' | 'voting' | 'reveal' | 'results' | 'leaderboard';
+}
+
+export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState | WordBlitzGameState | QuickDrawGameState | EmojiBattleGameState | ReactionSpeedGameState | LieDetectorGameState;
 
 export interface Room {
   code: string;
@@ -298,5 +314,15 @@ export const GAMES: GameInfo[] = [
     durationMinutes: '2-3',
     icon: 'zap',
     color: 'from-green-500 to-emerald-500',
+  },
+  {
+    id: 'lie-detector',
+    name: 'Lie Detector',
+    description: 'One player speaks, the rest guess — truth or lie? Fool your friends to win!',
+    minPlayers: 3,
+    maxPlayers: 8,
+    durationMinutes: '5-10',
+    icon: 'eye',
+    color: 'from-red-500 to-orange-500',
   },
 ];

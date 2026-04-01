@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getRoom, advanceEmojiBattle, forceReactionResults, advanceReactionRound } from '@/lib/rooms';
-import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState } from '@/lib/types';
+import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState, LieDetectorGameState } from '@/lib/types';
 
 export async function GET(
   request: Request,
@@ -212,6 +212,31 @@ export async function GET(
               Object.entries(rgs.reactions).filter(([, r]) => r.falseStart)
             ),
           scores: rgs.scores,
+          players: room.players,
+        });
+      }
+
+      case 'lie-detector': {
+        const lgs = gs as LieDetectorGameState;
+        const requestingPid = new URL(request.url).searchParams.get('pid') || '';
+
+        return NextResponse.json({
+          gameType: 'lie-detector',
+          phase: lgs.phase,
+          currentRound: lgs.currentRound,
+          totalRounds: lgs.totalRounds,
+          currentSpeakerId: lgs.currentSpeakerId,
+          prompt: lgs.prompt,
+          // Hide statement during statement phase (only speaker sees it via their own input)
+          statement: lgs.phase !== 'statement' ? lgs.statement : null,
+          // Only reveal speakerTruth during reveal, results, and leaderboard
+          speakerTruth: (lgs.phase === 'reveal' || lgs.phase === 'results' || lgs.phase === 'leaderboard') ? lgs.speakerTruth : null,
+          // During voting, only show who voted (not what they voted). During reveal+, show full votes.
+          votes: lgs.phase === 'voting'
+            ? Object.keys(lgs.votes)
+            : lgs.votes,
+          scores: lgs.scores,
+          roundStartedAt: lgs.roundStartedAt,
           players: room.players,
         });
       }

@@ -78,6 +78,15 @@ const GAME_DETAILS: Record<string, { howToPlay: string[]; keywords: string[] }> 
     ],
     keywords: ['reaction time game', 'reflex test', 'speed test', 'reaction game multiplayer'],
   },
+  'lie-detector': {
+    howToPlay: [
+      'Each round, one player is the speaker',
+      'The speaker makes a statement — it can be true or a lie',
+      'Other players vote whether it\'s truth or a lie',
+      'Correct guesses earn points — but the speaker earns points for every player they fool!',
+    ],
+    keywords: ['lie detector game', 'truth or lie', 'party deception game', 'social deduction game'],
+  },
 };
 
 // ── Static params for SSG ───────────────────────────────────────────────────
