@@ -187,10 +187,11 @@ export default function Home() {
         saveSession(session);
       }
 
+      const locale = window.location.hostname.includes('mamadgames') ? 'he' : 'en';
       const res = await fetch('/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostId: session.playerId }),
+        body: JSON.stringify({ hostId: session.playerId, locale }),
       });
       const data = await res.json();
       if (data.code) {
@@ -220,10 +221,11 @@ export default function Home() {
         saveSession(session);
       }
       const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)];
+      const locale = window.location.hostname.includes('mamadgames') ? 'he' : 'en';
       const res = await fetch('/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostId: session.playerId }),
+        body: JSON.stringify({ hostId: session.playerId, locale }),
       });
       const data = await res.json();
       if (data.code) {

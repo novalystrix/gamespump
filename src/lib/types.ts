@@ -212,6 +212,7 @@ export interface Room {
   lastActivity: number;
   gameState?: GameState;
   gameVotes?: Record<string, string>; // playerId -> gameId
+  locale?: 'en' | 'he';
 }
 
 export interface GameInfo {

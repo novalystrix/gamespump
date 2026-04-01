@@ -1,7 +1,11 @@
 import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState, LieDetectorGameState, ColorChaosGameState, ColorChaosRound } from './types';
 import { generateRound } from './emoji-sets';
 import { getShuffledQuestions } from './trivia-questions';
+import { getShuffledHebrewQuestions } from './trivia-questions-he';
 import { getShuffledThisOrThatQuestions } from './this-or-that-questions';
+import { getShuffledHebrewThisOrThat } from './this-or-that-questions-he';
+import { HEBREW_LIE_DETECTOR_PROMPTS } from './lie-detector-prompts-he';
+import { HEBREW_QUICK_DRAW_WORDS } from './quick-draw-words-he';
 import { generateMathQuestions } from './math-questions';
 
 // In-memory room store (server-side only)
@@ -35,7 +39,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-export function createRoom(hostId: string): Room {
+export function createRoom(hostId: string, locale?: 'en' | 'he'): Room {
   cleanExpiredRooms();
   const code = generateCode();
   const room: Room = {
@@ -46,6 +50,7 @@ export function createRoom(hostId: string): Room {
     status: 'waiting',
     createdAt: Date.now(),
     lastActivity: Date.now(),
+    locale: locale || 'en',
   };
   rooms.set(code, room);
   return room;
@@ -239,7 +244,9 @@ export function advanceMemoryTurn(code: string): Room | null {
 // ===== THIS OR THAT LOGIC =====
 
 function initThisOrThat(room: Room): ThisOrThatGameState {
-  const rounds = getShuffledThisOrThatQuestions(10);
+  const rounds = room.locale === 'he'
+    ? getShuffledHebrewThisOrThat(10)
+    : getShuffledThisOrThatQuestions(10);
   const scores: Record<string, number> = {};
   room.players.forEach(p => { scores[p.id] = 0; });
 
@@ -559,7 +566,8 @@ const QUICK_DRAW_WORDS = [
 
 function initQuickDraw(room: Room): QuickDrawGameState {
   const drawerOrder = shuffle(room.players.map(p => p.id));
-  const roundWords = shuffle([...QUICK_DRAW_WORDS]).slice(0, room.players.length);
+  const wordPool = room.locale === 'he' ? HEBREW_QUICK_DRAW_WORDS : QUICK_DRAW_WORDS;
+  const roundWords = shuffle([...wordPool]).slice(0, room.players.length);
   const scores: Record<string, number> = {};
   room.players.forEach(p => { scores[p.id] = 0; });
 
@@ -767,7 +775,9 @@ export function startGame(code: string, hostId: string): Room | null {
 
   switch (room.selectedGame) {
     case 'trivia-clash': {
-      const questions = getShuffledQuestions(10);
+      const questions = room.locale === 'he'
+        ? getShuffledHebrewQuestions(10)
+        : getShuffledQuestions(10);
       const scores: Record<string, number> = {};
       room.players.forEach(p => { scores[p.id] = 0; });
       gameState = {
@@ -1106,7 +1116,8 @@ function initLieDetector(room: Room): LieDetectorGameState {
   const speakerOrder = shuffle(room.players.map(p => p.id));
   const scores: Record<string, number> = {};
   room.players.forEach(p => { scores[p.id] = 0; });
-  const prompts = shuffle([...LIE_DETECTOR_PROMPTS]);
+  const promptPool = room.locale === 'he' ? HEBREW_LIE_DETECTOR_PROMPTS : LIE_DETECTOR_PROMPTS;
+  const prompts = shuffle([...promptPool]);
 
   return {
     type: 'lie-detector',
@@ -1206,7 +1217,8 @@ export function advanceLieDetectorPhase(code: string): Room | null {
       gs.phase = 'leaderboard';
       room.status = 'finished';
     } else {
-      const prompts = shuffle([...LIE_DETECTOR_PROMPTS]);
+      const promptPool = room.locale === 'he' ? HEBREW_LIE_DETECTOR_PROMPTS : LIE_DETECTOR_PROMPTS;
+      const prompts = shuffle([...promptPool]);
       gs.currentRound = nextRound;
       gs.currentSpeakerId = gs.speakerOrder[nextRound];
       gs.prompt = prompts[0];
