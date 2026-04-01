@@ -445,8 +445,20 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function copyInvite() {
+  async function copyInvite() {
     const url = `${window.location.origin}/join/${params.code}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join my GamesPump room!',
+          text: `🎮 Join room ${params.code} on GamesPump — no signup needed!`,
+          url,
+        });
+        return;
+      } catch {
+        // User cancelled or share failed — fall through to clipboard
+      }
+    }
     navigator.clipboard.writeText(url);
     setCopiedInvite(true);
     setTimeout(() => setCopiedInvite(false), 2000);
@@ -572,8 +584,11 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               ring-1 ring-purple-500/30 text-white/80 hover:text-white hover:ring-purple-400/50
               active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
           >
-            <CopyIcon className="w-4 h-4" />
-            {copiedInvite ? 'Copied!' : 'Invite Friends'}
+            {copiedInvite ? (
+              <>✅ Copied!</>
+            ) : (
+              <><span className="text-base">📤</span> Invite Friends</>
+            )}
           </button>
         </div>
 
