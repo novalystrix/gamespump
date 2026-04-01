@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { trackPageView, trackGameEnd } from '@/lib/analytics';
 import { useRouter } from 'next/navigation';
 import { getSession } from '@/lib/session';
 import { saveGameResult } from '@/lib/gameHistory';
@@ -411,6 +412,7 @@ export default function MemoryMatchPage({ params }: { params: { code: string } }
   }, [params.code, router]);
 
   useEffect(() => {
+    trackPageView('game-memory-match');
     fetchGameState();
     const interval = setInterval(fetchGameState, 1000);
     return () => clearInterval(interval);
@@ -477,6 +479,7 @@ export default function MemoryMatchPage({ params }: { params: { code: string } }
         score: gameState.scores[session.playerId] ?? 0,
         date: new Date().toISOString(),
       });
+      trackGameEnd('memory-match', gameState.scores[session.playerId] ?? 0, params.code);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState?.phase]);

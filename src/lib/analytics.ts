@@ -94,6 +94,48 @@ export function trackShare(method: string, gameName: string): void {
   track('share', { method, gameName });
 }
 
+// ── Server-side flush ───────────────────────────────────────────────────
+
+const FLUSH_KEY = 'gamespump_last_flush';
+const FLUSH_INTERVAL = 60_000; // Don't flush more than once per minute
+
+/** Send accumulated events to the server and clear the local buffer */
+export function flushEvents(): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const lastFlush = parseInt(localStorage.getItem(FLUSH_KEY) || '0');
+    if (Date.now() - lastFlush < FLUSH_INTERVAL) return;
+
+    const events: AnalyticsEvent[] = JSON.parse(localStorage.getItem(EVENTS_KEY) || '[]');
+    if (events.length === 0) return;
+
+    // Use sendBeacon for reliability on page unload
+    const payload = JSON.stringify({ events });
+    const sent = navigator.sendBeacon('/api/analytics', new Blob([payload], { type: 'application/json' }));
+
+    if (sent) {
+      localStorage.removeItem(EVENTS_KEY);
+      localStorage.setItem(FLUSH_KEY, String(Date.now()));
+    }
+  } catch {
+    // Silent fail — analytics should never break the app
+  }
+}
+
+/** Initialize auto-flush on page visibility change and unload */
+export function initAutoFlush(): void {
+  if (typeof window === 'undefined') return;
+
+  // Flush when page is hidden (tab switch, app switch, close)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushEvents();
+  });
+
+  // Fallback: flush on beforeunload
+  window.addEventListener('beforeunload', flushEvents);
+}
+
 // ── Stats Aggregation (for admin dashboard) ─────────────────────────────
 
 export interface AnalyticsStats {

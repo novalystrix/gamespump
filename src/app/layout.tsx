@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { AnalyticsInit } from "@/components/AnalyticsInit";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -87,6 +88,7 @@ export default function RootLayout({
           Skip to content
         </a>
         <ServiceWorkerRegistration />
+        <AnalyticsInit />
         {children}
       </body>
     </html>

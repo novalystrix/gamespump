@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { trackPageView, trackGameEnd } from '@/lib/analytics';
 import { useRouter } from 'next/navigation';
 import { getSession } from '@/lib/session';
 import { saveGameResult } from '@/lib/gameHistory';
@@ -105,6 +106,7 @@ function TimerBar({ startedAt }: { startedAt: number }) {
   const lastCountdownTickRef = useRef(-1);
 
   useEffect(() => {
+    trackPageView('game-this-or-that');
     const interval = setInterval(() => {
       const elapsed = (Date.now() - startedAt) / 1000;
       const next = Math.max(0, VOTE_TIME - elapsed);
@@ -631,6 +633,7 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
         score: gameState.scores[session.playerId] ?? 0,
         date: new Date().toISOString(),
       });
+      trackGameEnd('this-or-that', gameState.scores[session.playerId] ?? 0, params.code);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState?.phase]);
