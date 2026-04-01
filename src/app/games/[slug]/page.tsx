@@ -78,6 +78,15 @@ const GAME_DETAILS: Record<string, { howToPlay: string[]; keywords: string[] }> 
     ],
     keywords: ['reaction time game', 'reflex test', 'speed test', 'reaction game multiplayer'],
   },
+  'color-chaos': {
+    howToPlay: [
+      'Each round shows a color WORD printed in a different ink color',
+      'Tap the button that matches the INK color, not the word!',
+      'Faster correct answers earn a speed bonus on top of base points',
+      '15 rounds — the player with the most points wins!',
+    ],
+    keywords: ['stroop test', 'color game', 'brain teaser', 'stroop effect', 'color challenge', 'reaction game'],
+  },
   'lie-detector': {
     howToPlay: [
       'Each round, one player is the speaker',

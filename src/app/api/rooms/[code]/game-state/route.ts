@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getRoom, advanceEmojiBattle, forceReactionResults, advanceReactionRound } from '@/lib/rooms';
-import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState, LieDetectorGameState } from '@/lib/types';
+import { getRoom, advanceEmojiBattle, forceReactionResults, advanceReactionRound, forceColorChaosResults, advanceColorChaosRound } from '@/lib/rooms';
+import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState, LieDetectorGameState, ColorChaosGameState } from '@/lib/types';
 
 export async function GET(
   request: Request,
@@ -237,6 +237,38 @@ export async function GET(
             : lgs.votes,
           scores: lgs.scores,
           roundStartedAt: lgs.roundStartedAt,
+          players: room.players,
+        });
+      }
+
+      case 'color-chaos': {
+        const cgs = gs as ColorChaosGameState;
+
+        // Auto-advance: playing phase expires after 8 seconds
+        if (cgs.phase === 'playing' && Date.now() - cgs.roundStartedAt > 8000) {
+          forceColorChaosResults(params.code);
+        }
+        // Auto-advance: results phase lasts 2.5 seconds
+        if (cgs.phase === 'results' && Date.now() - cgs.roundStartedAt > 10500) {
+          advanceColorChaosRound(params.code);
+        }
+
+        const currentRound = cgs.rounds[cgs.currentRound];
+        return NextResponse.json({
+          gameType: 'color-chaos',
+          phase: cgs.phase,
+          currentRound: cgs.currentRound,
+          totalRounds: cgs.totalRounds,
+          round: {
+            wordText: currentRound.wordText,
+            inkColor: currentRound.inkColor,
+            inkColorName: currentRound.inkColorName,
+            options: currentRound.options,
+            correctIndex: cgs.phase !== 'playing' ? currentRound.correctIndex : undefined,
+          },
+          answers: cgs.phase === 'playing' ? Object.keys(cgs.answers) : cgs.answers,
+          scores: cgs.scores,
+          roundStartedAt: cgs.roundStartedAt,
           players: room.players,
         });
       }

@@ -180,7 +180,27 @@ export interface LieDetectorGameState {
   phase: 'statement' | 'voting' | 'reveal' | 'results' | 'leaderboard';
 }
 
-export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState | WordBlitzGameState | QuickDrawGameState | EmojiBattleGameState | ReactionSpeedGameState | LieDetectorGameState;
+// Color Chaos types
+export interface ColorChaosRound {
+  wordText: string;      // the color word displayed (e.g. "RED")
+  inkColor: string;      // the actual ink color hex (e.g. "#3B82F6" for blue)
+  inkColorName: string;  // name of ink color (e.g. "Blue") - this is the correct answer
+  options: { name: string; hex: string }[];  // 4 color buttons to choose from
+  correctIndex: number;  // index of correct option
+}
+
+export interface ColorChaosGameState {
+  type: 'color-chaos';
+  currentRound: number;
+  totalRounds: number;
+  rounds: ColorChaosRound[];
+  answers: Record<string, { answerIndex: number; answeredAt: number }>;
+  scores: Record<string, number>;
+  roundStartedAt: number;
+  phase: 'playing' | 'results' | 'leaderboard';
+}
+
+export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState | WordBlitzGameState | QuickDrawGameState | EmojiBattleGameState | ReactionSpeedGameState | LieDetectorGameState | ColorChaosGameState;
 
 export interface Room {
   code: string;
@@ -324,5 +344,15 @@ export const GAMES: GameInfo[] = [
     durationMinutes: '5-10',
     icon: 'eye',
     color: 'from-red-500 to-orange-500',
+  },
+  {
+    id: 'color-chaos',
+    name: 'Color Chaos',
+    description: 'The word says one color, the ink says another — tap the INK color! Don\'t get tricked.',
+    minPlayers: 2,
+    maxPlayers: 8,
+    durationMinutes: '3-5',
+    icon: 'palette',
+    color: 'from-rose-500 to-violet-500',
   },
 ];

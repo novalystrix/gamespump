@@ -75,6 +75,16 @@ const GAME_RULES: Record<string, { name: string; rules: string[]; scoring: strin
     ],
     scoring: '1st tap = 100pts, 2nd = 75pts, 3rd = 50pts, rest = 25pts.',
   },
+  'color-chaos': {
+    name: 'Color Chaos',
+    rules: [
+      'A color WORD is shown in a DIFFERENT ink color.',
+      'Tap the button matching the INK color, not the word!',
+      'You have 8 seconds per round — speed earns bonus points.',
+      'Wrong answers cost you 25 points.',
+    ],
+    scoring: 'Correct = 100pts + speed bonus (up to 50). Wrong = -25pts.',
+  },
   'lie-detector': {
     name: 'Lie Detector',
     rules: [

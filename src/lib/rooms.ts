@@ -1,4 +1,4 @@
-import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState, LieDetectorGameState } from './types';
+import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState, LieDetectorGameState, ColorChaosGameState, ColorChaosRound } from './types';
 import { generateRound } from './emoji-sets';
 import { getShuffledQuestions } from './trivia-questions';
 import { getShuffledThisOrThatQuestions } from './this-or-that-questions';
@@ -806,6 +806,9 @@ export function startGame(code: string, hostId: string): Room | null {
     case 'lie-detector':
       gameState = initLieDetector(room);
       break;
+    case 'color-chaos':
+      gameState = initColorChaos(room);
+      break;
     default:
       return null;
   }
@@ -915,6 +918,116 @@ export function addReaction(code: string, playerId: string, emoji: string): Room
   gs.reactions = gs.reactions.filter(r => r.at > fiveSecsAgo);
   gs.reactions.push({ id: `${playerId}_${Date.now()}`, playerId, emoji, at: Date.now() });
 
+  room.lastActivity = Date.now();
+  return room;
+}
+
+// ── Color Chaos ───────────────────────────────────────────────────────────
+
+const COLOR_CHAOS_COLORS = [
+  { name: 'Red', hex: '#EF4444' },
+  { name: 'Blue', hex: '#3B82F6' },
+  { name: 'Green', hex: '#22C55E' },
+  { name: 'Yellow', hex: '#EAB308' },
+  { name: 'Purple', hex: '#A855F7' },
+  { name: 'Orange', hex: '#F97316' },
+];
+
+function generateColorChaosRounds(count: number): ColorChaosRound[] {
+  const rounds: ColorChaosRound[] = [];
+  for (let i = 0; i < count; i++) {
+    const shuffled = shuffle([...COLOR_CHAOS_COLORS]);
+    const wordColor = shuffled[0]; // the word text (e.g. "RED")
+    const inkColor = shuffled[1];  // the actual ink color (different from word)
+
+    // Build 4 options: ink color (correct) + word color (misleading) + 2 random others
+    const others = shuffled.filter(c => c.name !== inkColor.name && c.name !== wordColor.name).slice(0, 2);
+    const options = shuffle([inkColor, wordColor, ...others]);
+    const correctIndex = options.findIndex(o => o.name === inkColor.name);
+
+    rounds.push({
+      wordText: wordColor.name.toUpperCase(),
+      inkColor: inkColor.hex,
+      inkColorName: inkColor.name,
+      options: options.map(o => ({ name: o.name, hex: o.hex })),
+      correctIndex,
+    });
+  }
+  return rounds;
+}
+
+function initColorChaos(room: Room): ColorChaosGameState {
+  const scores: Record<string, number> = {};
+  room.players.forEach(p => { scores[p.id] = 0; });
+  return {
+    type: 'color-chaos',
+    currentRound: 0,
+    totalRounds: 15,
+    rounds: generateColorChaosRounds(15),
+    answers: {},
+    scores,
+    roundStartedAt: Date.now(),
+    phase: 'playing',
+  };
+}
+
+export function submitColorChaosAnswer(code: string, playerId: string, roundIndex: number, answerIndex: number): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'color-chaos') return null;
+  const gs = room.gameState as ColorChaosGameState;
+  if (gs.phase !== 'playing' || gs.currentRound !== roundIndex) return null;
+  if (gs.answers[playerId]) return room; // already answered
+
+  gs.answers[playerId] = { answerIndex, answeredAt: Date.now() };
+
+  const round = gs.rounds[gs.currentRound];
+  if (answerIndex === round.correctIndex) {
+    // Correct: 100 + speed bonus (max 50, based on 8000ms)
+    const elapsed = Date.now() - gs.roundStartedAt;
+    const speedBonus = Math.max(0, Math.round(50 * (1 - elapsed / 8000)));
+    gs.scores[playerId] = (gs.scores[playerId] || 0) + 100 + speedBonus;
+  } else {
+    // Wrong: -25 (floor at 0)
+    gs.scores[playerId] = Math.max(0, (gs.scores[playerId] || 0) - 25);
+  }
+
+  // If all players answered, transition to results
+  const allAnswered = room.players.every(p => gs.answers[p.id]);
+  if (allAnswered) {
+    gs.phase = 'results';
+  }
+
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function advanceColorChaosRound(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'color-chaos') return null;
+  const gs = room.gameState as ColorChaosGameState;
+  if (gs.phase !== 'results') return null;
+
+  const nextRound = gs.currentRound + 1;
+  if (nextRound >= gs.totalRounds) {
+    gs.phase = 'leaderboard';
+    room.status = 'finished';
+  } else {
+    gs.currentRound = nextRound;
+    gs.answers = {};
+    gs.roundStartedAt = Date.now();
+    gs.phase = 'playing';
+  }
+
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function forceColorChaosResults(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'color-chaos') return null;
+  const gs = room.gameState as ColorChaosGameState;
+  if (gs.phase !== 'playing') return null;
+  gs.phase = 'results';
   room.lastActivity = Date.now();
   return room;
 }
