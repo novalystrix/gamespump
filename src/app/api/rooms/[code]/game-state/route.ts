@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getRoom, advanceEmojiBattle } from '@/lib/rooms';
-import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, QuickDrawGameState, EmojiBattleGameState } from '@/lib/types';
+import { getRoom, advanceEmojiBattle, forceReactionResults, advanceReactionRound } from '@/lib/rooms';
+import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState } from '@/lib/types';
 
 export async function GET(
   request: Request,
@@ -168,6 +168,50 @@ export async function GET(
           answers: egs.phase === 'playing' ? Object.keys(egs.answers).filter(k => egs.answers[k].correct) : egs.answers,
           scores: egs.scores,
           roundStartedAt: egs.roundStartedAt,
+          players: room.players,
+        });
+      }
+
+      case 'reaction-speed': {
+        const rgs = gs as ReactionSpeedGameState;
+        const now = Date.now();
+
+        // Auto-transition: if waiting phase and greenAt has passed, set phase to 'go'
+        if (rgs.phase === 'waiting' && now >= rgs.greenAt) {
+          rgs.phase = 'go';
+        }
+
+        // Auto-force results after 10 seconds in go phase (timeout for slow players)
+        if (rgs.phase === 'go' && now - rgs.greenAt > 10000) {
+          forceReactionResults(params.code);
+        }
+
+        // Auto-advance from results after 3 seconds
+        if (rgs.phase === 'results') {
+          const resultsDuration = 3000;
+          // Find when results started (approximate: latest reaction or greenAt + 10s)
+          const latestReaction = Object.values(rgs.reactions).reduce(
+            (max, r) => Math.max(max, r.reactedAt), 0
+          );
+          const resultsStartedAt = latestReaction > 0 ? latestReaction : rgs.greenAt + 10000;
+          if (now - resultsStartedAt > resultsDuration) {
+            advanceReactionRound(params.code);
+          }
+        }
+
+        return NextResponse.json({
+          gameType: 'reaction-speed',
+          phase: rgs.phase,
+          currentRound: rgs.currentRound,
+          totalRounds: rgs.totalRounds,
+          roundStartedAt: rgs.roundStartedAt,
+          greenAt: rgs.greenAt,
+          reactions: rgs.phase === 'results' || rgs.phase === 'leaderboard' ? rgs.reactions : 
+            // During waiting/go, only reveal if player false-started (so they see their penalty)
+            Object.fromEntries(
+              Object.entries(rgs.reactions).filter(([, r]) => r.falseStart)
+            ),
+          scores: rgs.scores,
           players: room.players,
         });
       }

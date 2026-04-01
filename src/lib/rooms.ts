@@ -1,4 +1,4 @@
-import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState, EmojiBattleGameState } from './types';
+import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState } from './types';
 import { generateRound } from './emoji-sets';
 import { getShuffledQuestions } from './trivia-questions';
 import { getShuffledThisOrThatQuestions } from './this-or-that-questions';
@@ -663,6 +663,95 @@ export function advanceQuickDrawRound(code: string): Room | null {
   return room;
 }
 
+// ===== REACTION SPEED LOGIC =====
+
+function initReactionSpeed(room: Room): ReactionSpeedGameState {
+  const now = Date.now();
+  const delay = 2000 + Math.random() * 3000; // 2-5 seconds
+  const scores: Record<string, number> = {};
+  room.players.forEach(p => { scores[p.id] = 0; });
+  return {
+    type: 'reaction-speed',
+    currentRound: 0,
+    totalRounds: 10,
+    roundStartedAt: now,
+    greenAt: now + delay,
+    reactions: {},
+    scores,
+    phase: 'waiting',
+  };
+}
+
+export function submitReaction(code: string, playerId: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'reaction-speed') return null;
+  const gs = room.gameState as ReactionSpeedGameState;
+  if (gs.phase !== 'waiting' && gs.phase !== 'go') return null;
+  if (gs.reactions[playerId]) return room; // already reacted
+
+  const now = Date.now();
+
+  if (now < gs.greenAt) {
+    // False start
+    gs.reactions[playerId] = { reactedAt: now, falseStart: true };
+    gs.scores[playerId] = (gs.scores[playerId] || 0) - 50;
+  } else {
+    // Valid reaction
+    gs.reactions[playerId] = { reactedAt: now, falseStart: false };
+
+    // Calculate rank among correct reactors
+    const correctReactions = Object.entries(gs.reactions)
+      .filter(([, r]) => !r.falseStart)
+      .sort((a, b) => a[1].reactedAt - b[1].reactedAt);
+    const rank = correctReactions.findIndex(([pid]) => pid === playerId);
+    const points = rank === 0 ? 100 : rank === 1 ? 75 : rank === 2 ? 50 : 25;
+    gs.scores[playerId] = (gs.scores[playerId] || 0) + points;
+  }
+
+  // If all players have reacted, move to results
+  const allReacted = room.players.every(p => gs.reactions[p.id]);
+  if (allReacted) {
+    gs.phase = 'results';
+  }
+
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function advanceReactionRound(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'reaction-speed') return null;
+  const gs = room.gameState as ReactionSpeedGameState;
+  if (gs.phase !== 'results') return null;
+
+  const nextRound = gs.currentRound + 1;
+  if (nextRound >= gs.totalRounds) {
+    gs.phase = 'leaderboard';
+    room.status = 'finished';
+  } else {
+    const now = Date.now();
+    const delay = 2000 + Math.random() * 3000;
+    gs.currentRound = nextRound;
+    gs.roundStartedAt = now;
+    gs.greenAt = now + delay;
+    gs.reactions = {};
+    gs.phase = 'waiting';
+  }
+
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function forceReactionResults(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'reaction-speed') return null;
+  const gs = room.gameState as ReactionSpeedGameState;
+  if (gs.phase !== 'waiting' && gs.phase !== 'go') return null;
+  gs.phase = 'results';
+  room.lastActivity = Date.now();
+  return room;
+}
+
 // ===== COMMON =====
 
 export function startGame(code: string, hostId: string): Room | null {
@@ -710,6 +799,9 @@ export function startGame(code: string, hostId: string): Room | null {
       break;
     case 'emoji-battle':
       gameState = initEmojiBattle(room);
+      break;
+    case 'reaction-speed':
+      gameState = initReactionSpeed(room);
       break;
     default:
       return null;

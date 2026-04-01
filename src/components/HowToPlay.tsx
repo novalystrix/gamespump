@@ -66,6 +66,15 @@ const GAME_RULES: Record<string, { name: string; rules: string[]; scoring: strin
     ],
     scoring: '1st correct = 100pts, 2nd = 75pts, 3rd = 50pts. Wrong = -25pts.',
   },
+  'reaction-speed': {
+    name: 'Reaction Speed',
+    rules: [
+      'Wait for the screen to turn GREEN.',
+      'Tap as fast as you can when you see green!',
+      'Tapping too early is a false start: -50 points.',
+    ],
+    scoring: '1st tap = 100pts, 2nd = 75pts, 3rd = 50pts, rest = 25pts.',
+  },
 };
 
 interface HowToPlayProps {

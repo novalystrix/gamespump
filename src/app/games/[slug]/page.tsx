@@ -69,6 +69,15 @@ const GAME_DETAILS: Record<string, { howToPlay: string[]; keywords: string[] }> 
     ],
     keywords: ['emoji game', 'spot the emoji', 'visual search game', 'emoji find'],
   },
+  'reaction-speed': {
+    howToPlay: [
+      'Wait for the screen to turn from red to GREEN',
+      'Tap as fast as possible when you see green',
+      'Tapping before green is a false start — you lose 50 points',
+      '10 rounds — fastest reflexes win!',
+    ],
+    keywords: ['reaction time game', 'reflex test', 'speed test', 'reaction game multiplayer'],
+  },
 };
 
 // ── Static params for SSG ───────────────────────────────────────────────────

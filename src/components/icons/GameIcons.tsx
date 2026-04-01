@@ -147,6 +147,24 @@ export function CalculatorIcon({ className = "w-8 h-8" }: { className?: string }
   );
 }
 
+export function TargetIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </svg>
+  );
+}
+
+export function ZapIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+
 export const gameIconMap: Record<string, React.FC<{ className?: string }>> = {
   pencil: PencilIcon,
   text: TextIcon,
@@ -154,4 +172,6 @@ export const gameIconMap: Record<string, React.FC<{ className?: string }>> = {
   grid: GridIcon,
   split: SplitIcon,
   calculator: CalculatorIcon,
+  target: TargetIcon,
+  zap: ZapIcon,
 };

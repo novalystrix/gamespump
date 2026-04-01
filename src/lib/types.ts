@@ -152,7 +152,19 @@ export interface EmojiBattleGameState {
   wrongGuesses: Record<string, boolean>;
 }
 
-export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState | WordBlitzGameState | QuickDrawGameState | EmojiBattleGameState;
+// Reaction Speed types
+export interface ReactionSpeedGameState {
+  type: 'reaction-speed';
+  currentRound: number;
+  totalRounds: number;
+  roundStartedAt: number;   // when the "wait" phase started
+  greenAt: number;           // when the screen should turn green (roundStartedAt + random 2000-5000ms)
+  reactions: Record<string, { reactedAt: number; falseStart: boolean }>; // playerId -> reaction
+  scores: Record<string, number>;
+  phase: 'waiting' | 'go' | 'results' | 'leaderboard';
+}
+
+export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState | WordBlitzGameState | QuickDrawGameState | EmojiBattleGameState | ReactionSpeedGameState;
 
 export interface Room {
   code: string;
@@ -276,5 +288,15 @@ export const GAMES: GameInfo[] = [
     durationMinutes: '2-3',
     icon: 'target',
     color: 'from-yellow-500 to-orange-500',
+  },
+  {
+    id: 'reaction-speed',
+    name: 'Reaction Speed',
+    description: 'Wait for green, tap fast! Test your reflexes against friends.',
+    minPlayers: 2,
+    maxPlayers: 8,
+    durationMinutes: '2-3',
+    icon: 'zap',
+    color: 'from-green-500 to-emerald-500',
   },
 ];
