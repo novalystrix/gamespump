@@ -12,7 +12,7 @@ https://gamespump.onrender.com
 3. **Mobile-first** — Every interaction works on a phone screen with one thumb.
 4. **Replayability** — Players should want to go "one more round" every time.
 
-## Current Games (7)
+## Current Games (10) ✅ Target achieved
 | Game | Type | Players | Duration |
 |------|------|---------|----------|
 | Quick Draw | Drawing + guessing | 3-8 | 3-5m |
@@ -22,6 +22,9 @@ https://gamespump.onrender.com
 | This or That | Opinion voting | 2-8 | 3-5m |
 | Speed Math | Math racing | 2-6 | 3-5m |
 | Emoji Battle | Visual search | 2-8 | 2-3m |
+| Reaction Speed | Reflex test | 2-8 | 2-3m |
+| Lie Detector | Social deception | 3-8 | 5-10m |
+| Color Chaos | Stroop test | 2-8 | 3-5m |
 
 ## Stack
 - Next.js 14, Tailwind CSS, TypeScript
@@ -37,13 +40,13 @@ https://gamespump.onrender.com
 - **Bounce rate** — do people leave before playing?
 
 ## Strategic Priorities
-1. **Multi-round play** — every game should support "play again" without returning to lobby. Keep the energy going.
-2. **Speed scoring** — faster correct answers = more points. Reward reaction time across ALL games.
-3. **New games** — expand the catalog. Target: 10+ games. Ideas: charades, emoji storytelling, reaction speed, music guess, lie detector.
-4. **Social sharing** — post-game share cards, invite links, room QR codes.
-5. **Sound & haptics** — audio feedback for correct/wrong, countdown ticks, victory fanfare.
-6. **WebSocket migration** — move from polling to real-time for snappier gameplay.
-7. **Analytics** — understand what games people play most, where they drop off, session length.
+1. ✅ **Multi-round play** — DONE. All games support "play again" without leaving lobby.
+2. ✅ **Speed scoring** — DONE. All 10 games reward faster answers.
+3. ✅ **New games** — DONE. 10 games shipped (target was 10+).
+4. ✅ **Social sharing** — DONE. Dynamic OG images, Web Share API, invite flow.
+5. 🔄 **Sound & haptics** — All games have sound effects. Only Reaction Speed has haptics.
+6. 🔲 **WebSocket migration** — move from polling to real-time for snappier gameplay.
+7. ✅ **Analytics** — DONE. Client + server-side event tracking, all games instrumented.
 
 ## What We Don't Do
 - No user accounts (keep it frictionless)
