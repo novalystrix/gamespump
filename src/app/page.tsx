@@ -8,6 +8,7 @@ import { GAMES } from '@/lib/types';
 import { trackPageView, trackRoomCreated } from "@/lib/analytics";
 import { GamepadIcon } from '@/components/icons/GameIcons';
 import { useLocale } from '@/hooks/useLocale';
+import { getLocale } from '@/lib/locale';
 
 function BackgroundDecor() {
   return (
@@ -187,7 +188,7 @@ export default function Home() {
         saveSession(session);
       }
 
-      const locale = window.location.hostname.includes('mamadgames') ? 'he' : 'en';
+      const locale = getLocale();
       const res = await fetch('/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -221,7 +222,7 @@ export default function Home() {
         saveSession(session);
       }
       const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)];
-      const locale = window.location.hostname.includes('mamadgames') ? 'he' : 'en';
+      const locale = getLocale();
       const res = await fetch('/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

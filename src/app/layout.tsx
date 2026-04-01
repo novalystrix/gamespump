@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { AnalyticsInit } from "@/components/AnalyticsInit";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { headers } from "next/headers";
 
 const inter = Inter({
@@ -21,9 +22,9 @@ function getServerLocale(): 'en' | 'he' {
   try {
     const headersList = headers();
     const host = headersList.get('host') || '';
-    return host.includes('mamadgames') ? 'he' : 'en';
+    return host.includes('mamadgames') ? 'he' : 'he';
   } catch {
-    return 'en';
+    return 'he';
   }
 }
 
@@ -114,6 +115,7 @@ export default function RootLayout({
         >
           Skip to content
         </a>
+        <LanguageToggle />
         <ServiceWorkerRegistration />
         <AnalyticsInit />
         {children}
