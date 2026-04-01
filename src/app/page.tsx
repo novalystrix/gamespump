@@ -92,6 +92,63 @@ function StatsSection({ gamesPlayed }: { gamesPlayed: number }) {
   );
 }
 
+function HowItWorks() {
+  const steps = [
+    { emoji: '🔗', title: 'Open the link', desc: 'No signup, no download' },
+    { emoji: '😎', title: 'Pick a name', desc: 'Choose an avatar and join' },
+    { emoji: '🎮', title: 'Play!', desc: 'Compete with friends instantly' },
+  ];
+  return (
+    <div className="mb-8">
+      <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-3 text-center">How It Works</p>
+      <div className="flex items-start justify-between gap-2">
+        {steps.map((step, i) => (
+          <div key={i} className="flex-1 text-center">
+            <div className="text-2xl mb-1.5">{step.emoji}</div>
+            <p className="text-sm font-display font-semibold text-white/70 mb-0.5">{step.title}</p>
+            <p className="text-xs text-white/30">{step.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TrustBadges() {
+  return (
+    <div className="flex items-center justify-center gap-3 flex-wrap mb-6">
+      <span className="px-3 py-1 rounded-full bg-white/[0.04] text-white/40 text-xs">✅ Free forever</span>
+      <span className="px-3 py-1 rounded-full bg-white/[0.04] text-white/40 text-xs">🎮 {GAMES.length} games</span>
+      <span className="px-3 py-1 rounded-full bg-white/[0.04] text-white/40 text-xs">📱 Any device</span>
+    </div>
+  );
+}
+
+function InviteFriendsCTA() {
+  return (
+    <div className="flex justify-center mb-6">
+      <button
+        onClick={async () => {
+          const shareData = {
+            title: 'GamesPump — Party Games',
+            text: '🎮 Free party games — no signup, no downloads. Just play!',
+            url: 'https://gamespump.onrender.com',
+          };
+          if (typeof navigator !== 'undefined' && navigator.share) {
+            try { await navigator.share(shareData); } catch {}
+          } else {
+            try { await navigator.clipboard.writeText('🎮 GamesPump — Free party games! https://gamespump.onrender.com'); } catch {}
+          }
+        }}
+        className="flex items-center gap-2 px-5 py-2.5 rounded-full glass text-white/60 text-sm font-semibold hover:text-white hover:bg-white/10 active:scale-[0.97] transition-all"
+      >
+        <span>📤</span>
+        Invite Friends
+      </button>
+    </div>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
   const [joinCode, setJoinCode] = useState('');
@@ -99,7 +156,6 @@ export default function Home() {
   const [creating, setCreating] = useState<string | null>(null);
   const [history, setHistory] = useState<GameResult[]>([]);
   const [gamesPlayed, setGamesPlayed] = useState(0);
-  const [hoveredGame, setHoveredGame] = useState<string | null>(null);
   const [luckyLoading, setLuckyLoading] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> } | null>(null);
   const [showInstall, setShowInstall] = useState(false);
@@ -212,7 +268,8 @@ export default function Home() {
             <h1 className="text-3xl font-display font-bold text-gradient">GamesPump</h1>
           </div>
           <p className="text-xl font-display font-semibold text-white/80 mb-1">Party Games. Instant Fun.</p>
-          <p className="text-white/35 text-sm font-body">No signup. No downloads. Pick a name. Play with friends.</p>
+          <p className="text-white/35 text-sm font-body mb-3">No signup. No downloads. Pick a name. Play with friends.</p>
+          <TrustBadges />
           {gamesPlayed > 0 && (
             <button
               onClick={() => router.push('/stats')}
@@ -292,6 +349,9 @@ export default function Home() {
           </button>
         </div>
 
+        {/* How It Works */}
+        <HowItWorks />
+
         {/* Game grid */}
         <div className="mb-6">
           <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-3">Host a Game</p>
@@ -302,10 +362,6 @@ export default function Home() {
                 onClick={() => handleHostGame(game.id)}
                 disabled={creating !== null}
                 aria-label={`Host ${game.name}`}
-                onMouseEnter={() => setHoveredGame(game.id)}
-                onMouseLeave={() => setHoveredGame(null)}
-                onFocus={() => setHoveredGame(game.id)}
-                onBlur={() => setHoveredGame(null)}
                 className={`relative rounded-2xl overflow-hidden text-left transition-all
                   active:scale-[0.97] [touch-action:manipulation]
                   ${creating === game.id ? 'opacity-60' : 'hover:scale-[1.02]'}
@@ -324,16 +380,10 @@ export default function Home() {
                     }}
                   />
                 </div>
-                {/* Hover overlay with description */}
-                <div
-                  className={`absolute inset-0 bg-black/75 flex flex-col justify-end p-3 transition-opacity duration-200
-                    ${hoveredGame === game.id ? 'opacity-100' : 'opacity-0'}`}
-                >
-                  <p className="text-xs text-white/90 font-body leading-snug">{game.description}</p>
-                </div>
-                <div className="px-3 py-2 bg-white/[0.04]">
+                <div className="px-3 py-2.5 bg-white/[0.04]">
                   <p className="text-sm font-display font-bold text-white leading-tight">{game.name}</p>
-                  <div className="flex items-center justify-between mt-0.5">
+                  <p className="text-xs text-white/40 leading-snug mt-1 line-clamp-2">{game.description}</p>
+                  <div className="flex items-center justify-between mt-1.5">
                     <p className="text-xs text-white/35">{game.minPlayers}–{game.maxPlayers} players</p>
                     <p className="text-xs text-white/25">~{game.durationMinutes}m</p>
                   </div>
@@ -347,6 +397,9 @@ export default function Home() {
             ))}
           </div>
         </div>
+
+        {/* Invite Friends — high visibility */}
+        <InviteFriendsCTA />
 
         <StatsSection gamesPlayed={gamesPlayed} />
 
@@ -364,28 +417,6 @@ export default function Home() {
             </button>
           </div>
         )}
-
-        {/* Share / Invite */}
-        <div className="flex justify-center mb-6">
-          <button
-            onClick={async () => {
-              const shareData = {
-                title: 'GamesPump — Party Games',
-                text: '🎮 Free party games — no signup, no downloads. Just play!',
-                url: 'https://gamespump.onrender.com',
-              };
-              if (navigator.share) {
-                try { await navigator.share(shareData); } catch {}
-              } else {
-                await navigator.clipboard.writeText('🎮 GamesPump — Free party games! https://gamespump.onrender.com');
-              }
-            }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full glass text-white/60 text-sm font-semibold hover:text-white hover:bg-white/10 active:scale-[0.97] transition-all"
-          >
-            <span>📤</span>
-            Invite Friends
-          </button>
-        </div>
 
         {/* Footer */}
         <footer className="text-center text-white/20 text-xs font-body pt-4 pb-2">
