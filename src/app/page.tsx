@@ -7,6 +7,7 @@ import { getGameHistory, getGamesPlayed, GameResult } from '@/lib/gameHistory';
 import { GAMES } from '@/lib/types';
 import { trackPageView, trackRoomCreated } from "@/lib/analytics";
 import { GamepadIcon } from '@/components/icons/GameIcons';
+import { useLocale } from '@/hooks/useLocale';
 
 function BackgroundDecor() {
   return (
@@ -18,22 +19,13 @@ function BackgroundDecor() {
   );
 }
 
-const GAME_NAMES: Record<string, string> = {
-  'trivia-clash': 'Trivia Clash',
-  'word-blitz': 'Word Blitz',
-  'quick-draw': 'Quick Draw',
-  'memory-match': 'Memory Match',
-  'this-or-that': 'This or That',
-  'speed-math': 'Speed Math',
-};
-
-function RecentGames({ history, onRejoin }: { history: GameResult[]; onRejoin: (code: string) => void }) {
+function RecentGames({ history, onRejoin, t }: { history: GameResult[]; onRejoin: (code: string) => void; t: (key: string, r?: Record<string, string | number>) => string }) {
   if (history.length === 0) return null;
   const now = Date.now();
   const THIRTY_MIN = 30 * 60 * 1000;
   return (
     <div className="mb-6">
-      <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-2">Recent Games</p>
+      <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-2">{t('home.recentGames')}</p>
       <div className="space-y-2">
         {history.map((r, i) => {
           const canRejoin = now - new Date(r.date).getTime() < THIRTY_MIN;
@@ -50,13 +42,13 @@ function RecentGames({ history, onRejoin }: { history: GameResult[]; onRejoin: (
                   />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-white/80">{GAME_NAMES[r.gameType] ?? r.gameType}</p>
-                  <p className="text-xs text-white/30">Room {r.roomCode}</p>
+                  <p className="text-xs font-semibold text-white/80">{t(`game.${r.gameType}.name`)}</p>
+                  <p className="text-xs text-white/30">{t('lobby.roomCode')} {r.roomCode}</p>
                 </div>
               </div>
               <div className="text-right flex items-center gap-3">
                 <div>
-                  <p className="text-xs font-bold text-purple-300">{r.score} pts</p>
+                  <p className="text-xs font-bold text-purple-300">{r.score} {t('common.pts')}</p>
                   <p className="text-xs text-white/25">{new Date(r.date).toLocaleDateString()}</p>
                 </div>
                 {canRejoin && (
@@ -64,7 +56,7 @@ function RecentGames({ history, onRejoin }: { history: GameResult[]; onRejoin: (
                     onClick={() => onRejoin(r.roomCode)}
                     className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
                   >
-                    Rejoin
+                    {t('home.rejoin')}
                   </button>
                 )}
               </div>
@@ -76,37 +68,37 @@ function RecentGames({ history, onRejoin }: { history: GameResult[]; onRejoin: (
   );
 }
 
-function StatsSection({ gamesPlayed }: { gamesPlayed: number }) {
+function StatsSection({ gamesPlayed, t }: { gamesPlayed: number; t: (key: string, r?: Record<string, string | number>) => string }) {
   return (
     <div className="mb-6 flex items-center justify-center gap-6 text-center">
       <div>
         <p className="text-lg font-display font-bold text-white/60">{gamesPlayed > 0 ? gamesPlayed.toLocaleString() : '—'}</p>
-        <p className="text-xs text-white/25 font-body mt-0.5">games played</p>
+        <p className="text-xs text-white/25 font-body mt-0.5">{t('home.gamesPlayed')}</p>
       </div>
       <div className="w-px h-8 bg-white/10" />
       <div>
         <p className="text-lg font-display font-bold text-white/60">{GAMES.length}</p>
-        <p className="text-xs text-white/25 font-body mt-0.5">games available</p>
+        <p className="text-xs text-white/25 font-body mt-0.5">{t('home.gamesAvailable')}</p>
       </div>
     </div>
   );
 }
 
-function HowItWorks() {
+function HowItWorks({ t }: { t: (key: string, r?: Record<string, string | number>) => string }) {
   const steps = [
-    { emoji: '🔗', title: 'Open the link', desc: 'No signup, no download' },
-    { emoji: '😎', title: 'Pick a name', desc: 'Choose an avatar and join' },
-    { emoji: '🎮', title: 'Play!', desc: 'Compete with friends instantly' },
+    { emoji: '🔗', titleKey: 'home.step1', descKey: 'home.step1Desc' },
+    { emoji: '😎', titleKey: 'home.step2', descKey: 'home.step2Desc' },
+    { emoji: '🎮', titleKey: 'home.step3', descKey: 'home.step3Desc' },
   ];
   return (
     <div className="mb-8">
-      <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-3 text-center">How It Works</p>
+      <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-3 text-center">{t('home.howItWorks')}</p>
       <div className="flex items-start justify-between gap-2">
         {steps.map((step, i) => (
           <div key={i} className="flex-1 text-center">
             <div className="text-2xl mb-1.5">{step.emoji}</div>
-            <p className="text-sm font-display font-semibold text-white/70 mb-0.5">{step.title}</p>
-            <p className="text-xs text-white/30">{step.desc}</p>
+            <p className="text-sm font-display font-semibold text-white/70 mb-0.5">{t(step.titleKey)}</p>
+            <p className="text-xs text-white/30">{t(step.descKey)}</p>
           </div>
         ))}
       </div>
@@ -114,36 +106,35 @@ function HowItWorks() {
   );
 }
 
-function TrustBadges() {
+function TrustBadges({ t }: { t: (key: string, r?: Record<string, string | number>) => string }) {
   return (
     <div className="flex items-center justify-center gap-3 flex-wrap mb-6">
-      <span className="px-3 py-1 rounded-full bg-white/[0.04] text-white/40 text-xs">✅ Free forever</span>
-      <span className="px-3 py-1 rounded-full bg-white/[0.04] text-white/40 text-xs">🎮 {GAMES.length} games</span>
-      <span className="px-3 py-1 rounded-full bg-white/[0.04] text-white/40 text-xs">📱 Any device</span>
+      <span className="px-3 py-1 rounded-full bg-white/[0.04] text-white/40 text-xs">{t('home.trustFree')}</span>
+      <span className="px-3 py-1 rounded-full bg-white/[0.04] text-white/40 text-xs">{t('home.trustGames', { count: GAMES.length })}</span>
+      <span className="px-3 py-1 rounded-full bg-white/[0.04] text-white/40 text-xs">{t('home.trustDevice')}</span>
     </div>
   );
 }
 
-function InviteFriendsCTA() {
+function InviteFriendsCTA({ t }: { t: (key: string, r?: Record<string, string | number>) => string }) {
   return (
     <div className="flex justify-center mb-6">
       <button
         onClick={async () => {
           const shareData = {
-            title: 'GamesPump — Party Games',
-            text: '🎮 Free party games — no signup, no downloads. Just play!',
-            url: 'https://gamespump.onrender.com',
+            title: t('home.title'),
+            text: t('home.shareText'),
+            url: window.location.origin,
           };
           if (typeof navigator !== 'undefined' && navigator.share) {
             try { await navigator.share(shareData); } catch {}
           } else {
-            try { await navigator.clipboard.writeText('🎮 GamesPump — Free party games! https://gamespump.onrender.com'); } catch {}
+            try { await navigator.clipboard.writeText(t('home.shareClipboard')); } catch {}
           }
         }}
         className="flex items-center gap-2 px-5 py-2.5 rounded-full glass text-white/60 text-sm font-semibold hover:text-white hover:bg-white/10 active:scale-[0.97] transition-all"
       >
-        <span>📤</span>
-        Invite Friends
+        {t('home.inviteFriends')}
       </button>
     </div>
   );
@@ -151,6 +142,7 @@ function InviteFriendsCTA() {
 
 export default function Home() {
   const router = useRouter();
+  const { t } = useLocale();
   const [joinCode, setJoinCode] = useState('');
   const [showJoin, setShowJoin] = useState(false);
   const [creating, setCreating] = useState<string | null>(null);
@@ -265,18 +257,17 @@ export default function Home() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-3">
             <GamepadIcon className="w-7 h-7 text-purple-400" />
-            <h1 className="text-3xl font-display font-bold text-gradient">GamesPump</h1>
+            <h1 className="text-3xl font-display font-bold text-gradient">{t('home.title')}</h1>
           </div>
-          <p className="text-xl font-display font-semibold text-white/80 mb-1">Party Games. Instant Fun.</p>
-          <p className="text-white/35 text-sm font-body mb-3">No signup. No downloads. Pick a name. Play with friends.</p>
-          <TrustBadges />
+          <p className="text-xl font-display font-semibold text-white/80 mb-1">{t('home.subtitle')}</p>
+          <p className="text-white/35 text-sm font-body mb-3">{t('home.tagline')}</p>
+          <TrustBadges t={t} />
           {gamesPlayed > 0 && (
             <button
               onClick={() => router.push('/stats')}
               className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-white/50 text-xs font-body hover:text-white/70 hover:bg-white/10 transition-all [touch-action:manipulation]"
             >
-              <span>📊</span>
-              Stats
+              {t('home.stats')}
             </button>
           )}
         </div>
@@ -290,11 +281,11 @@ export default function Home() {
                 glass text-white/80 hover:bg-white/10
                 active:scale-[0.98] transition-all duration-200 text-base"
             >
-              Join a Game
+              {t('home.join')}
             </button>
           ) : (
             <div className="glass rounded-2xl p-4 animate-scale-in">
-              <label className="text-sm text-white/50 font-body mb-2 block">Enter room code</label>
+              <label className="text-sm text-white/50 font-body mb-2 block">{t('home.enterCode')}</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -304,7 +295,7 @@ export default function Home() {
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   placeholder="1234"
-                  aria-label="Room code"
+                  aria-label={t('home.enterCode')}
                   autoFocus
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3
                     text-center text-2xl font-display tracking-[0.3em] text-white
@@ -320,7 +311,7 @@ export default function Home() {
                     disabled:opacity-30 disabled:cursor-not-allowed
                     active:scale-[0.97] transition-all [touch-action:manipulation]"
                 >
-                  Go
+                  {t('home.go')}
                 </button>
               </div>
             </div>
@@ -341,27 +332,27 @@ export default function Home() {
             {luckyLoading ? (
               <span className="inline-flex items-center gap-2">
                 <span className="inline-block animate-spin">🎲</span>
-                Rolling...
+                {t('home.rolling')}
               </span>
             ) : (
-              '🎲 Feeling Lucky'
+              t('home.feelingLucky')
             )}
           </button>
         </div>
 
         {/* How It Works */}
-        <HowItWorks />
+        <HowItWorks t={t} />
 
         {/* Game grid */}
         <div className="mb-6">
-          <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-3">Host a Game</p>
+          <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-3">{t('home.hostGame')}</p>
           <div className="grid grid-cols-2 gap-3">
             {GAMES.map((game, index) => (
               <button
                 key={game.id}
                 onClick={() => handleHostGame(game.id)}
                 disabled={creating !== null}
-                aria-label={`Host ${game.name}`}
+                aria-label={`${t('home.hostGame')} ${t(`game.${game.id}.name`)}`}
                 className={`relative rounded-2xl overflow-hidden text-left transition-all
                   active:scale-[0.97] [touch-action:manipulation]
                   ${creating === game.id ? 'opacity-60' : 'hover:scale-[1.02]'}
@@ -370,7 +361,7 @@ export default function Home() {
                 <div className="w-full aspect-[4/3] bg-white/5">
                   <img
                     src={`/images/games/${game.id}.webp`}
-                    alt={game.name}
+                    alt={t(`game.${game.id}.name`)}
                     className="w-full h-full object-cover"
                     loading={index >= 2 ? 'lazy' : undefined}
                     onError={(e) => {
@@ -381,11 +372,11 @@ export default function Home() {
                   />
                 </div>
                 <div className="px-3 py-2.5 bg-white/[0.04]">
-                  <p className="text-sm font-display font-bold text-white leading-tight">{game.name}</p>
-                  <p className="text-xs text-white/40 leading-snug mt-1 line-clamp-2">{game.description}</p>
+                  <p className="text-sm font-display font-bold text-white leading-tight">{t(`game.${game.id}.name`)}</p>
+                  <p className="text-xs text-white/40 leading-snug mt-1 line-clamp-2">{t(`game.${game.id}.desc`)}</p>
                   <div className="flex items-center justify-between mt-1.5">
-                    <p className="text-xs text-white/35">{game.minPlayers}–{game.maxPlayers} players</p>
-                    <p className="text-xs text-white/25">~{game.durationMinutes}m</p>
+                    <p className="text-xs text-white/35">{t('home.players', { min: game.minPlayers, max: game.maxPlayers })}</p>
+                    <p className="text-xs text-white/25">{t('home.duration', { min: game.durationMinutes })}</p>
                   </div>
                 </div>
                 {creating === game.id && (
@@ -399,11 +390,11 @@ export default function Home() {
         </div>
 
         {/* Invite Friends — high visibility */}
-        <InviteFriendsCTA />
+        <InviteFriendsCTA t={t} />
 
-        <StatsSection gamesPlayed={gamesPlayed} />
+        <StatsSection gamesPlayed={gamesPlayed} t={t} />
 
-        <RecentGames history={history} onRejoin={(code) => router.push(`/join/${code}`)} />
+        <RecentGames history={history} onRejoin={(code) => router.push(`/join/${code}`)} t={t} />
 
         {/* PWA Install Prompt */}
         {showInstall && (
@@ -412,15 +403,14 @@ export default function Home() {
               onClick={handleInstall}
               className="flex items-center gap-2 px-4 py-2 rounded-full glass text-white/50 text-xs font-body hover:text-white/70 hover:bg-white/10 transition-all [touch-action:manipulation]"
             >
-              <span>📲</span>
-              Install App
+              {t('home.installApp')}
             </button>
           </div>
         )}
 
         {/* Footer */}
         <footer className="text-center text-white/20 text-xs font-body pt-4 pb-2">
-          Made with 🎮 by GamesPump
+          {t('home.footer')}
         </footer>
       </div>
     </main>

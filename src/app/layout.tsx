@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { AnalyticsInit } from "@/components/AnalyticsInit";
+import { headers } from "next/headers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -15,6 +16,16 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-display",
   display: "swap",
 });
+
+function getServerLocale(): 'en' | 'he' {
+  try {
+    const headersList = headers();
+    const host = headersList.get('host') || '';
+    return host.includes('mamadgames') ? 'he' : 'en';
+  } catch {
+    return 'en';
+  }
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://gamespump.onrender.com"),
@@ -61,8 +72,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = getServerLocale();
+  const dir = locale === 'he' ? 'rtl' : 'ltr';
+
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+    <html lang={locale} dir={dir} className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <head>
         <script
           type="application/ld+json"
