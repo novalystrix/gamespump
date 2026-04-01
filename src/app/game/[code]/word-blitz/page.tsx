@@ -775,7 +775,7 @@ export default function WordBlitzPage({ params }: { params: { code: string } }) 
 
                 {/* Hint: scoring */}
                 <p className="text-center text-[11px] text-white/25 mb-3">
-                  3=1pt · 4=2pt · 5=4pt · 6=8pt · 7+=16pt
+                  3=1pt · 4=2pt · 5=4pt · 6=8pt · 7+=16pt — Longer words + faster = more points
                 </p>
 
                 {/* My submitted words */}

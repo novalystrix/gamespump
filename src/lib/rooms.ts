@@ -168,6 +168,7 @@ export function flipCard(code: string, playerId: string, cardIndex: number): Roo
     gs.board[cardIndex].flipped = true;
     gs.firstPick = cardIndex;
     gs.turnPhase = 'second-pick';
+    gs.turnStartedAt = Date.now();
   } else if (gs.turnPhase === 'second-pick') {
     gs.board[cardIndex].flipped = true;
     gs.secondPick = cardIndex;
@@ -178,12 +179,14 @@ export function flipCard(code: string, playerId: string, cardIndex: number): Roo
     const secondCard = gs.board[cardIndex];
 
     if (firstCard.symbol === secondCard.symbol) {
-      // Match found
+      // Match found — speed scoring: 100 base + up to 50 speed bonus
       firstCard.matched = true;
       firstCard.matchedBy = playerId;
       secondCard.matched = true;
       secondCard.matchedBy = playerId;
-      gs.scores[playerId] = (gs.scores[playerId] || 0) + 1;
+      const elapsed = Date.now() - (gs.turnStartedAt || Date.now());
+      const speedBonus = Math.max(0, Math.round(50 * (1 - elapsed / 5000)));
+      gs.scores[playerId] = (gs.scores[playerId] || 0) + 100 + speedBonus;
     }
   }
 
@@ -210,6 +213,7 @@ export function advanceMemoryTurn(code: string): Room | null {
 
   gs.firstPick = null;
   gs.secondPick = null;
+  gs.turnStartedAt = undefined;
 
   // Check if game is over
   const allMatched = gs.board.every(c => c.matched);
@@ -495,7 +499,10 @@ export function submitWordBlitzWord(
   if (!gs.submittedWords[playerId]) gs.submittedWords[playerId] = [];
   if (gs.submittedWords[playerId].includes(upper)) return { success: false, pointsGained: 0, error: 'Already submitted' };
 
-  const points = wordBlitzScore(upper);
+  const basePoints = wordBlitzScore(upper);
+  const elapsedSeconds = (Date.now() - gs.roundStartedAt) / 1000;
+  const speedBonus = Math.max(0, 0.5 * (1 - elapsedSeconds / 30));
+  const points = Math.round(basePoints * (1 + speedBonus));
   gs.submittedWords[playerId].push(upper);
   gs.scores[playerId] = (gs.scores[playerId] || 0) + points;
 

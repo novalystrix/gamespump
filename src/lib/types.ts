@@ -58,6 +58,7 @@ export interface MemoryMatchGameState {
   scores: Record<string, number>;
   phase: 'playing' | 'leaderboard';
   showingResultUntil: number | null; // timestamp when result display ends
+  turnStartedAt?: number; // timestamp when first card was flipped (for speed scoring)
 }
 
 // This or That types
