@@ -2,21 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/useLocale';
 import { getSession } from '@/lib/session';
 import { getGameHistory, getPlayerStats, GameResult, PlayerStats } from '@/lib/gameHistory';
 import { getAllAchievements, getUnlockedAchievements, Achievement, UnlockedAchievement } from '@/lib/achievements';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { PlayerSession } from '@/lib/types';
-
-const GAME_NAMES: Record<string, string> = {
-  'trivia-clash': 'Trivia Clash',
-  'word-blitz': 'Word Blitz',
-  'quick-draw': 'Quick Draw',
-  'memory-match': 'Memory Match',
-  'this-or-that': 'This or That',
-  'speed-math': 'Speed Math',
-};
 
 function BackgroundDecor() {
   return (
@@ -41,6 +33,7 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
 
 export default function StatsPage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [session, setSession] = useState<PlayerSession | null>(null);
   const [history, setHistory] = useState<GameResult[]>([]);
   const [stats, setStats] = useState<PlayerStats | null>(null);
@@ -55,7 +48,7 @@ export default function StatsPage() {
     setUnlockedAchievements(getUnlockedAchievements());
   }, []);
 
-  const favoriteGameName = stats?.favoriteGame ? (GAME_NAMES[stats.favoriteGame] ?? stats.favoriteGame) : '—';
+  const favoriteGameName = stats?.favoriteGame ? t(`game.${stats.favoriteGame}.name`) : '—';
 
   return (
     <main className="min-h-[100dvh] flex flex-col items-center px-6 py-10 relative">
@@ -70,7 +63,7 @@ export default function StatsPage() {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          Back
+          {t('stats.back')}
         </button>
 
         {/* Player header */}
@@ -83,23 +76,23 @@ export default function StatsPage() {
           <h1 className="text-2xl font-display font-bold text-white">
             {session?.name || 'Player'}
           </h1>
-          <p className="text-white/40 text-sm font-body mt-0.5">Player Stats</p>
+          <p className="text-white/40 text-sm font-body mt-0.5">{t('stats.playerStats')}</p>
         </div>
 
         {/* Stats grid */}
         {stats && (
           <div className="grid grid-cols-2 gap-3 mb-8">
-            <StatCard label="Total Games" value={stats.totalGames} />
-            <StatCard label="Total Score" value={stats.totalScore} />
-            <StatCard label="Favorite Game" value={favoriteGameName} />
-            <StatCard label="Avg Score" value={stats.averageScore > 0 ? stats.averageScore : '—'} />
+            <StatCard label={t('stats.totalGames')} value={stats.totalGames} />
+            <StatCard label={t('stats.totalScore')} value={stats.totalScore} />
+            <StatCard label={t('stats.favoriteGame')} value={favoriteGameName} />
+            <StatCard label={t('stats.avgScore')} value={stats.averageScore > 0 ? stats.averageScore : '—'} />
           </div>
         )}
 
         {/* Per-game breakdown */}
         {stats && Object.keys(stats.gamesPerType).length > 0 && (
           <div className="mb-8">
-            <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-3">By Game</p>
+            <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-3">{t('stats.byGame')}</p>
             <div className="space-y-2">
               {Object.entries(stats.gamesPerType)
                 .sort((a, b) => b[1] - a[1])
@@ -116,17 +109,17 @@ export default function StatsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-display font-semibold text-white leading-tight">
-                        {GAME_NAMES[gameType] ?? gameType}
+                        {t(`game.${gameType}.name`)}
                       </p>
                       <p className="text-xs text-white/35 font-body">
-                        {count} {count === 1 ? 'game' : 'games'}
+                        {count === 1 ? t('stats.gameCount', { count }) : t('stats.gameCountPlural', { count })}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-bold text-purple-300">
                         {(stats.bestScoreByGame[gameType] ?? 0).toLocaleString()}
                       </p>
-                      <p className="text-xs text-white/30 font-body">best</p>
+                      <p className="text-xs text-white/30 font-body">{t('stats.best')}</p>
                     </div>
                   </div>
                 ))}
@@ -138,7 +131,7 @@ export default function StatsPage() {
         {history.length > 0 && (
           <div className="mb-8">
             <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-3">
-              Recent Games ({history.length})
+              {t('stats.recentGames', { count: history.length })}
             </p>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {history.map((r, i) => (
@@ -154,12 +147,12 @@ export default function StatsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-white/80 truncate">
-                      {GAME_NAMES[r.gameType] ?? r.gameType}
+                      {t(`game.${r.gameType}.name`)}
                     </p>
-                    <p className="text-xs text-white/30">Room {r.roomCode}</p>
+                    <p className="text-xs text-white/30">{t('stats.room', { code: r.roomCode })}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-xs font-bold text-purple-300">{r.score} pts</p>
+                    <p className="text-xs font-bold text-purple-300">{r.score} {t('common.pts')}</p>
                     <p className="text-xs text-white/25">{new Date(r.date).toLocaleDateString()}</p>
                   </div>
                 </div>
@@ -172,8 +165,8 @@ export default function StatsPage() {
         {history.length === 0 && (
           <div className="glass rounded-2xl p-8 text-center mb-8">
             <p className="text-4xl mb-3">🎮</p>
-            <p className="text-white/50 font-body text-sm">No games played yet.</p>
-            <p className="text-white/30 font-body text-xs mt-1">Play a game to see your stats here!</p>
+            <p className="text-white/50 font-body text-sm">{t('stats.emptyTitle')}</p>
+            <p className="text-white/30 font-body text-xs mt-1">{t('stats.emptySubtitle')}</p>
           </div>
         )}
 
@@ -181,7 +174,7 @@ export default function StatsPage() {
         {allAchievements.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs text-white/30 font-body uppercase tracking-wider">Achievements</p>
+              <p className="text-xs text-white/30 font-body uppercase tracking-wider">{t('stats.achievements')}</p>
               <p className="text-xs text-white/30 font-body">
                 {unlockedAchievements.length}/{allAchievements.length}
               </p>
@@ -213,7 +206,7 @@ export default function StatsPage() {
         )}
 
         <footer className="text-center text-white/20 text-xs font-body pt-4 pb-2">
-          Made with 🎮 by GamesPump
+          {t('stats.footer')}
         </footer>
       </div>
     </main>

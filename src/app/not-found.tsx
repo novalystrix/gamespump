@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useLocale } from '@/hooks/useLocale';
 
 function BackgroundDecor() {
   return (
@@ -13,6 +14,8 @@ function BackgroundDecor() {
 }
 
 export default function NotFound() {
+  const { t } = useLocale();
+
   return (
     <main className="min-h-[100dvh] flex flex-col items-center justify-center px-6 py-10 relative">
       <BackgroundDecor />
@@ -21,9 +24,9 @@ export default function NotFound() {
         <p className="text-8xl font-display font-bold bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent mb-2">
           404
         </p>
-        <p className="text-2xl font-display font-bold text-white mb-2">Game Over</p>
+        <p className="text-2xl font-display font-bold text-white mb-2">{t('notFound.title')}</p>
         <p className="text-white/50 font-body text-sm mb-8">
-          Looks like this page rolled off the board!
+          {t('notFound.description')}
         </p>
         <Link
           href="/"
@@ -32,7 +35,7 @@ export default function NotFound() {
             shadow-lg shadow-purple-500/20
             active:scale-[0.98] transition-all duration-200"
         >
-          🎮 Back to Games
+          {t('notFound.backToGames')}
         </Link>
       </div>
     </main>

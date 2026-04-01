@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLocale } from '@/hooks/useLocale';
 import { getAnalyticsStats, AnalyticsStats } from '@/lib/analytics';
 import { GamepadIcon } from '@/components/icons/GameIcons';
 
@@ -41,6 +42,7 @@ function BarChart({ data, label }: { data: Record<string, number>; label: string
 }
 
 export default function AnalyticsPage() {
+  const { t } = useLocale();
   const [stats, setStats] = useState<AnalyticsStats | null>(null);
 
   useEffect(() => {
@@ -60,40 +62,40 @@ export default function AnalyticsPage() {
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center gap-2 mb-6">
           <GamepadIcon className="w-5 h-5 text-purple-400" />
-          <h1 className="text-xl font-display font-bold text-white">Analytics</h1>
-          <a href="/" className="ml-auto text-xs text-white/30 hover:text-white/50">← Home</a>
+          <h1 className="text-xl font-display font-bold text-white">{t('analytics.title')}</h1>
+          <a href="/" className="ml-auto text-xs text-white/30 hover:text-white/50">{t('analytics.home')}</a>
         </div>
 
         {/* Overview */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <StatCard label="Events" value={stats.totalEvents} />
-          <StatCard label="Visitors" value={stats.uniqueVisitors} />
-          <StatCard label="Sessions" value={stats.totalSessions} />
-          <StatCard label="Return Rate" value={`${stats.returnRate.toFixed(0)}%`} />
+          <StatCard label={t('analytics.events')} value={stats.totalEvents} />
+          <StatCard label={t('analytics.visitors')} value={stats.uniqueVisitors} />
+          <StatCard label={t('analytics.sessions')} value={stats.totalSessions} />
+          <StatCard label={t('analytics.returnRate')} value={`${stats.returnRate.toFixed(0)}%`} />
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <StatCard label="Rooms Created" value={stats.roomsCreated} />
-          <StatCard label="Rooms Joined" value={stats.roomsJoined} />
-          <StatCard label="Shares" value={stats.shares} />
-          <StatCard label="Games Played" value={Object.values(stats.gamesCompleted).reduce((a, b) => a + b, 0)} />
+          <StatCard label={t('analytics.roomsCreated')} value={stats.roomsCreated} />
+          <StatCard label={t('analytics.roomsJoined')} value={stats.roomsJoined} />
+          <StatCard label={t('analytics.shares')} value={stats.shares} />
+          <StatCard label={t('analytics.gamesPlayed')} value={Object.values(stats.gamesCompleted).reduce((a, b) => a + b, 0)} />
         </div>
 
         {/* Charts */}
         <div className="space-y-4">
-          <BarChart data={stats.pageViews} label="Page Views" />
-          <BarChart data={stats.gamesStarted} label="Games Started" />
-          <BarChart data={stats.gamesCompleted} label="Games Completed" />
+          <BarChart data={stats.pageViews} label={t('analytics.pageViews')} />
+          <BarChart data={stats.gamesStarted} label={t('analytics.gamesStarted')} />
+          <BarChart data={stats.gamesCompleted} label={t('analytics.gamesCompleted')} />
           <BarChart
             data={Object.fromEntries(
               Object.entries(stats.eventsByHour).map(([h, v]) => [`${h}:00`, v])
             )}
-            label="Activity by Hour"
+            label={t('analytics.activityByHour')}
           />
         </div>
 
         <p className="text-center text-white/15 text-xs mt-8">
-          Client-side only • No PII • {stats.totalEvents} events tracked
+          {t('analytics.footer', { count: stats.totalEvents })}
         </p>
       </div>
     </main>
