@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession } from '@/lib/session';
 import { trackPageView, trackGameStart } from "@/lib/analytics";
+import { useLocale } from '@/hooks/useLocale';
 import { Room, GAMES, Player } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { CopyIcon, CrownIcon, CheckIcon, UsersIcon, ClockIcon } from '@/components/icons/GameIcons';
@@ -92,10 +93,12 @@ function PlayerCard({
   player,
   isCurrentUser,
   isReadyOverride,
+  t,
 }: {
   player: Player;
   isCurrentUser: boolean;
   isReadyOverride?: boolean;
+  t: (key: string, replacements?: Record<string, string | number>) => string;
 }) {
   const showReady = player.isHost || (isReadyOverride !== undefined ? isReadyOverride : player.isReady);
 
@@ -122,7 +125,7 @@ function PlayerCard({
             </span>
           )}
         </div>
-        <span className="text-xs text-emerald-400">In game</span>
+        <span className="text-xs text-emerald-400">{t('lobby.inGame')}</span>
       </div>
     </div>
   );
@@ -134,12 +137,14 @@ function GameCard({
   onSelect,
   voteCount,
   isTopVoted,
+  t,
 }: {
   game: typeof GAMES[0];
   selected: boolean;
   onSelect: () => void;
   voteCount?: number;
   isTopVoted?: boolean;
+  t: (key: string, replacements?: Record<string, string | number>) => string;
 }) {
   const Icon = gameIconMap[game.icon];
   return (
@@ -184,7 +189,7 @@ function GameCard({
       {voteCount && voteCount > 0 && (
         <div className={`absolute top-3 ${selected ? 'right-11' : 'right-3'} px-2 py-0.5 rounded-full text-xs font-semibold
           ${isTopVoted ? 'bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/30' : 'bg-white/10 text-white/50'}`}>
-          {voteCount} {voteCount === 1 ? 'vote' : 'votes'}
+          {voteCount === 1 ? t('lobby.vote', { count: '1' }) : t('lobby.votes', { count: String(voteCount) })}
         </div>
       )}
     </button>
@@ -196,10 +201,12 @@ function GamePreviewCard({
   game,
   isHost,
   onChangeClick,
+  t,
 }: {
   game: typeof GAMES[0];
   isHost: boolean;
   onChangeClick: () => void;
+  t: (key: string, replacements?: Record<string, string | number>) => string;
 }) {
   return (
     <div className="mb-4 rounded-2xl overflow-hidden relative animate-scale-in">
@@ -231,17 +238,17 @@ function GamePreviewCard({
             />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white/40 text-xs mb-0.5">Selected game</p>
+            <p className="text-white/40 text-xs mb-0.5">{t('lobby.selectedGame')}</p>
             <h3 className="font-display font-bold text-white text-base leading-tight mb-1">{game.name}</h3>
             <p className="text-white/50 text-xs leading-relaxed line-clamp-2">{game.description}</p>
             <div className="flex items-center gap-3 mt-2 text-white/30 text-xs">
               <span className="flex items-center gap-1">
                 <UsersIcon className="w-3 h-3" />
-                {game.minPlayers}–{game.maxPlayers} players
+                {t('lobby.playersRange', { min: String(game.minPlayers), max: String(game.maxPlayers) })} {t('common.players')}
               </span>
               <span className="flex items-center gap-1">
                 <ClockIcon className="w-3 h-3" />
-                {game.durationMinutes} min
+                {t('lobby.duration', { min: String(game.durationMinutes) })}
               </span>
             </div>
           </div>
@@ -250,7 +257,7 @@ function GamePreviewCard({
               onClick={onChangeClick}
               className="text-xs text-purple-400 px-3 py-2 min-h-[44px] rounded-lg hover:bg-white/5 transition-colors [touch-action:manipulation] flex-shrink-0"
             >
-              Change
+              {t('lobby.change')}
             </button>
           )}
         </div>
@@ -304,6 +311,7 @@ function CountdownOverlay({ value }: { value: 3 | 2 | 1 | 'GO!' }) {
 
 export default function RoomPage({ params }: { params: { code: string } }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [room, setRoom] = useState<Room | null>(null);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
@@ -335,7 +343,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     try {
       const res = await fetch(`/api/rooms/${params.code}`);
       if (!res.ok) {
-        setError('Room not found or expired');
+        setError(t('lobby.roomNotFound'));
         return;
       }
       const data = await res.json();
@@ -346,7 +354,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         router.push(`/game/${params.code}/${data.room.selectedGame}`);
       }
     } catch {
-      setError('Failed to connect');
+      setError(t('lobby.failedToConnect'));
     }
   }, [params.code, router]);
 
@@ -450,8 +458,8 @@ export default function RoomPage({ params }: { params: { code: string } }) {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join my GamesPump room!',
-          text: `🎮 Join room ${params.code} on GamesPump — no signup needed!`,
+          title: t('lobby.shareTitle'),
+          text: t('lobby.shareText', { code: params.code }),
           url,
         });
         return;
@@ -514,7 +522,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             onClick={() => router.push('/')}
             className="px-6 py-3 rounded-xl glass text-white font-semibold"
           >
-            Back to Home
+            {t('lobby.backToHome')}
           </button>
         </div>
       </main>
@@ -554,7 +562,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
       <div className="relative z-10 w-full max-w-sm mx-auto page-transition flex flex-col flex-1">
         {/* Room code header */}
         <div className="text-center mb-6">
-          <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-1">Room Code</p>
+          <p className="text-xs text-white/30 font-body uppercase tracking-wider mb-1">{t('lobby.roomCode')}</p>
           <button
             onClick={copyCode}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl glass hover:bg-white/10 transition-colors"
@@ -565,12 +573,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             <CopyIcon className={`w-4 h-4 transition-colors ${copied ? 'text-emerald-400' : 'text-white/30'}`} />
           </button>
           {copied && (
-            <p className="text-emerald-400 text-xs mt-1 animate-scale-in">Copied!</p>
+            <p className="text-emerald-400 text-xs mt-1 animate-scale-in">{t('common.copied')}</p>
           )}
           {showQR && (
             <div className="mt-3 flex flex-col items-center gap-1">
               <QRCode url={joinUrl} size={128} />
-              <p className="text-white/25 text-xs">Scan to join</p>
+              <p className="text-white/25 text-xs">{t('lobby.scanToJoin')}</p>
             </div>
           )}
         </div>
@@ -585,9 +593,9 @@ export default function RoomPage({ params }: { params: { code: string } }) {
               active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
           >
             {copiedInvite ? (
-              <>✅ Copied!</>
+              <>{t('lobby.copiedInvite')}</>
             ) : (
-              <><span className="text-base">📤</span> Invite Friends</>
+              <><span className="text-base">📤</span> {t('lobby.inviteFriends')}</>
             )}
           </button>
         </div>
@@ -596,7 +604,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-white/50 font-body">
-              Players ({playerCount})
+              {t('lobby.players', { count: String(playerCount) })}
             </h2>
           </div>
           <div className="space-y-2">
@@ -606,11 +614,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 player={player}
                 isCurrentUser={player.id === session?.playerId}
                 isReadyOverride={player.id === session?.playerId ? isReady : undefined}
+                t={t}
               />
             ))}
             {room.players.length === 0 && (
               <div className="text-center py-8 text-white/20 text-sm">
-                Waiting for players to join...
+                {t('lobby.waitingToJoin')}
               </div>
             )}
           </div>
@@ -629,7 +638,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                   }`}
               >
                 {isReady && <CheckIcon className="w-4 h-4" />}
-                {isReady ? 'Not Ready' : 'Ready!'}
+                {isReady ? t('lobby.notReady') : t('lobby.readyBtn')}
               </button>
             </div>
           )}
@@ -644,6 +653,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             game={selectedGameInfo}
             isHost={isHost}
             onChangeClick={() => setShowGames(true)}
+            t={t}
           />
         )}
 
@@ -651,7 +661,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
         {showGames && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
             <div className="w-full max-w-sm bg-[#1a0a2e] rounded-t-3xl sm:rounded-3xl p-6 max-h-[80vh] overflow-y-auto animate-slide-up">
-              <h2 className="font-display font-bold text-lg text-white mb-4">Choose a Game</h2>
+              <h2 className="font-display font-bold text-lg text-white mb-4">{t('lobby.chooseGame')}</h2>
               <div className="space-y-3">
                 {GAMES.map((game) => (
                   <GameCard
@@ -661,6 +671,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                     onSelect={() => selectGame(game.id)}
                     voteCount={voteCounts[game.id]}
                     isTopVoted={maxVoteCount > 0 && voteCounts[game.id] === maxVoteCount}
+                    t={t}
                   />
                 ))}
               </div>
@@ -668,7 +679,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 onClick={() => setShowGames(false)}
                 className="w-full mt-4 py-3 rounded-xl text-white/40 text-sm hover:text-white/60 transition-colors"
               >
-                Cancel
+                {t('lobby.cancel')}
               </button>
             </div>
           </div>
@@ -684,7 +695,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 hover:bg-white/10
                 active:scale-[0.98] transition-all duration-200 [touch-action:manipulation]"
             >
-              Choose a Game
+              {t('lobby.chooseGame')}
             </button>
           )}
 
@@ -695,11 +706,11 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                 <div className="px-4 py-3 rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-500/30 text-center animate-scale-in">
                   <p className="text-emerald-400 font-semibold text-sm flex items-center justify-center gap-1.5">
                     <CheckIcon className="w-4 h-4" />
-                    Everyone is ready!
+                    {t('lobby.everyoneReady')}
                   </p>
                   {autoStart !== null && (
                     <p className="text-emerald-400/70 text-xs mt-1">
-                      Starting in {autoStart}…
+                      {t('lobby.startingIn', { count: String(autoStart) })}
                     </p>
                   )}
                 </div>
@@ -716,12 +727,12 @@ export default function RoomPage({ params }: { params: { code: string } }) {
                   ${allReadyAndCanStart ? 'animate-pulse' : ''}`}
               >
                 {autoStart !== null
-                  ? `Wait (Starting in ${autoStart}…)`
+                  ? t('lobby.waitStartingIn', { count: String(autoStart) })
                   : canStart
-                    ? 'Start Game!'
+                    ? t('lobby.startGame')
                     : playerCount < 2
-                      ? `Waiting for players... (${playerCount}/2)`
-                      : 'Pick a game to start'
+                      ? t('lobby.waitingCount', { current: String(playerCount), min: '2' })
+                      : t('lobby.pickGameToStart')
                 }
               </button>
             </>
@@ -730,10 +741,10 @@ export default function RoomPage({ params }: { params: { code: string } }) {
           {!isHost && (
             <div className="text-center py-3">
               <p className="text-white/30 text-sm">
-                {isReady ? 'Waiting for host to start...' : 'Press Ready when you\'re set!'}
+                {isReady ? t('lobby.waitingForHost') : t('lobby.pressReady')}
               </p>
               <div className="mt-3">
-                <p className="text-white/20 text-xs mb-2">Suggest a game</p>
+                <p className="text-white/20 text-xs mb-2">{t('lobby.suggestGame')}</p>
                 <div className="flex flex-wrap gap-1.5 justify-center">
                   {GAMES.map(game => (
                     <button
@@ -757,7 +768,7 @@ export default function RoomPage({ params }: { params: { code: string } }) {
             onClick={leaveRoom}
             className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
           >
-            Leave Room
+            {t('lobby.leaveRoom')}
           </button>
         </div>
       </div>

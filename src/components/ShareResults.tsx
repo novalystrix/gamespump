@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { trackShare } from "@/lib/analytics";
+import { useLocale } from '@/hooks/useLocale';
 
 export function ShareResults({
   gameName,
@@ -14,9 +15,10 @@ export function ShareResults({
   roomCode?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const { t } = useLocale();
 
   async function share() {
-    const text = `🎮 GamesPump — ${gameName}\n🏆 Winner: ${winnerName} (${winnerScore} pts)\nPlay with us!`;
+    const text = t('share.resultText', { game: gameName, winner: winnerName, score: String(winnerScore) });
     const url = roomCode
       ? `https://gamespump.onrender.com/join/${roomCode}`
       : 'https://gamespump.onrender.com';
@@ -25,7 +27,7 @@ export function ShareResults({
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
-          title: `GamesPump — ${gameName}`,
+          title: t('share.resultTitle', { game: gameName }),
           text,
           url,
         });
@@ -54,7 +56,7 @@ export function ShareResults({
       onClick={share}
       className="w-full py-3 rounded-2xl font-semibold text-sm glass text-white/70 hover:text-white hover:bg-white/10 active:scale-[0.98] transition-all duration-200"
     >
-      {copied ? '✓ Copied!' : '📤 Share Results'}
+      {copied ? t('share.copiedResults') : t('share.shareResults')}
     </button>
   );
 }

@@ -7,9 +7,11 @@ import { trackPageView, trackRoomJoined } from "@/lib/analytics";
 import { AVATARS, PLAYER_COLORS } from '@/lib/types';
 import { Avatar } from '@/components/avatars/AvatarSVG';
 import { ChevronLeftIcon, CheckIcon } from '@/components/icons/GameIcons';
+import { useLocale } from '@/hooks/useLocale';
 
 export default function JoinPage({ params }: { params: { code: string } }) {
   const router = useRouter();
+  const { t } = useLocale();
   const searchParams = useSearchParams();
   const isHost = searchParams.get('host') === 'true';
   
@@ -31,7 +33,7 @@ export default function JoinPage({ params }: { params: { code: string } }) {
 
   async function handleJoin() {
     if (!name.trim()) {
-      setError('Pick a name to continue');
+      setError(t('join.pickName'));
       return;
     }
 
@@ -65,7 +67,7 @@ export default function JoinPage({ params }: { params: { code: string } }) {
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || 'Room not found');
+        setError(data.error || t('join.roomNotFound'));
         setJoining(false);
         return;
       }
@@ -73,7 +75,7 @@ export default function JoinPage({ params }: { params: { code: string } }) {
       trackRoomJoined(params.code);
       router.push(`/room/${params.code}`);
     } catch {
-      setError('Something went wrong. Try again.');
+      setError(t('join.somethingWrong'));
       setJoining(false);
     }
   }
@@ -96,7 +98,7 @@ export default function JoinPage({ params }: { params: { code: string } }) {
             <ChevronLeftIcon className="w-5 h-5 text-white/50" />
           </button>
           <div>
-            <p className="text-sm text-white/40 font-body">Joining room</p>
+            <p className="text-sm text-white/40 font-body">{t('join.joiningRoom')}</p>
             <p className="text-xl font-display font-bold tracking-wider text-white">{params.code}</p>
           </div>
         </div>
@@ -120,12 +122,12 @@ export default function JoinPage({ params }: { params: { code: string } }) {
 
         {/* Name input */}
         <div className="mb-6">
-          <label className="text-sm text-white/40 font-body mb-2 block">Your name</label>
+          <label className="text-sm text-white/40 font-body mb-2 block">{t('join.yourName')}</label>
           <input
             type="text"
             value={name}
             onChange={(e) => { setName(e.target.value); setError(''); }}
-            placeholder="Enter your name"
+            placeholder={t('join.enterName')}
             maxLength={16}
             autoFocus
             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5
@@ -138,7 +140,7 @@ export default function JoinPage({ params }: { params: { code: string } }) {
 
         {/* Avatar picker */}
         <div className="mb-6">
-          <label className="text-sm text-white/40 font-body mb-3 block">Pick your avatar</label>
+          <label className="text-sm text-white/40 font-body mb-3 block">{t('join.pickAvatar')}</label>
           <div className="grid grid-cols-4 gap-2">
             {AVATARS.map((avatar) => (
               <button
@@ -163,7 +165,7 @@ export default function JoinPage({ params }: { params: { code: string } }) {
 
         {/* Color picker */}
         <div className="mb-8">
-          <label className="text-sm text-white/40 font-body mb-3 block">Pick your color</label>
+          <label className="text-sm text-white/40 font-body mb-3 block">{t('join.pickColor')}</label>
           <div className="flex gap-2 justify-center flex-wrap">
             {PLAYER_COLORS.map((color) => (
               <button
@@ -196,7 +198,7 @@ export default function JoinPage({ params }: { params: { code: string } }) {
             shadow-lg shadow-purple-500/25
             disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {joining ? 'Joining...' : isHost ? 'Create & Join' : 'Join Room'}
+          {joining ? t('join.joining') : isHost ? t('join.createAndJoin') : t('join.joinRoom')}
         </button>
       </div>
     </main>
