@@ -14,6 +14,7 @@ import { HowToPlay } from '@/components/HowToPlay';
 import { Podium } from '@/components/Podium';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
+import { useLocale } from '@/hooks/useLocale';
 
 function playSound(name: string) {
   if (typeof window === 'undefined') return;
@@ -337,6 +338,7 @@ function LeaderboardView({
   session: { playerId: string } | null;
 }) {
   const [restarting, setRestarting] = useState(false);
+  const { t } = useLocale();
   const newAchievements = useAchievementCheck();
 
   async function handlePlayAgain() {
@@ -364,8 +366,8 @@ function LeaderboardView({
 
   return (
     <div className="animate-slide-up text-center">
-      <h2 className="font-display font-bold text-3xl text-white mb-2">Game Over!</h2>
-      <p className="text-white/40 text-sm mb-8">Final Scores</p>
+      <h2 className="font-display font-bold text-3xl text-white mb-2">{t('common.gameOver')}</h2>
+      <p className="text-white/40 text-sm mb-8">{t('common.finalScores')}</p>
 
       {/* Confetti-style decorations */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -422,7 +424,7 @@ function LeaderboardView({
 
               <div className="text-right">
                 <p className="text-xl font-display font-bold text-white"><AnimatedNumber value={gameState.scores[player.id] || 0} /></p>
-                <p className="text-xs text-white/30">points</p>
+                <p className="text-xs text-white/30">{t('common.points')}</p>
               </div>
             </div>
           );
@@ -430,7 +432,7 @@ function LeaderboardView({
       </div>
 
       <div className="space-y-3">
-        <ShareResults gameName="This or That" winnerName={sorted[0]?.name ?? ''} winnerScore={gameState.scores[sorted[0]?.id] || 0} />
+        <ShareResults gameName={t('game.this-or-that.name')} winnerName={sorted[0]?.name ?? ''} winnerScore={gameState.scores[sorted[0]?.id] || 0} />
         {isHost ? (
           <>
             <button
@@ -441,7 +443,7 @@ function LeaderboardView({
                 shadow-lg shadow-purple-500/25
                 active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
             >
-              {restarting ? 'Starting...' : 'Play Again'}
+              {restarting ? 'Starting...' : t('common.playAgain')}
             </button>
             <button
               onClick={async () => {
@@ -450,20 +452,20 @@ function LeaderboardView({
               }}
               className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
             >
-              Back to Lobby
+              {t('common.backToLobby')}
             </button>
           </>
         ) : (
           <>
             <div className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
               bg-white/5 text-white/30 text-center">
-              Waiting for host to restart...
+              {t('common.waitingForHost')}
             </div>
             <button
               onClick={() => router.push(`/room/${roomCode}`)}
               className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
             >
-              Back to Lobby
+              {t('common.backToLobby')}
             </button>
           </>
         )}
@@ -475,6 +477,7 @@ function LeaderboardView({
 
 export default function ThisOrThatPage({ params }: { params: { code: string } }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [session] = useState(() => typeof window !== 'undefined' ? getSession() : null);
   const [gameState, setGameState] = useState<ThisOrThatState | null>(null);
   const [myVote, setMyVote] = useState<'A' | 'B' | null>(null);
@@ -655,13 +658,13 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
       <main className="min-h-[100dvh] flex items-center justify-center px-6">
         <div className="text-center">
           <div className="text-4xl mb-4">🏁</div>
-          <h2 className="text-xl font-display font-bold text-white mb-2">This room has ended</h2>
-          <p className="text-white/50 text-sm mb-6">The game session is no longer available.</p>
+          <h2 className="text-xl font-display font-bold text-white mb-2">{t('common.roomEnded')}</h2>
+          <p className="text-white/50 text-sm mb-6">{t('common.roomEndedDesc')}</p>
           <button
             onClick={() => router.push('/')}
             className="px-6 py-3 rounded-xl glass text-white font-semibold"
           >
-            Go Home
+            {t('common.goHome')}
           </button>
         </div>
       </main>
@@ -674,7 +677,7 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
         <div className="text-center">
           <p className="text-white/50 mb-4">{error}</p>
           <button onClick={() => router.push(`/room/${params.code}`)} className="px-6 py-3 rounded-xl glass text-white font-semibold">
-            Back to Lobby
+            {t('common.backToLobby')}
           </button>
         </div>
       </main>
@@ -686,7 +689,7 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
       <main className="min-h-[100dvh] flex items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-white/50 text-sm font-body">Loading game...</p>
+          <p className="text-white/50 text-sm font-body">{t('common.loading')}</p>
         </div>
       </main>
     );

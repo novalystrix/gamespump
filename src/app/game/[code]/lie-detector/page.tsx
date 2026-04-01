@@ -14,6 +14,7 @@ import { HowToPlay } from '@/components/HowToPlay';
 import { Podium } from '@/components/Podium';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
+import { useLocale } from '@/hooks/useLocale';
 
 function playSound(name: string) {
   if (typeof window === 'undefined') return;
@@ -309,6 +310,7 @@ function VotingPhase({
   myVote: 'truth' | 'lie' | null;
   setMyVote: (v: 'truth' | 'lie') => void;
 }) {
+  const { t } = useLocale();
   const isSpeaker = myId === gameState.currentSpeakerId;
   const speaker = gameState.players.find(p => p.id === gameState.currentSpeakerId);
   const votedIds = Array.isArray(gameState.votes) ? gameState.votes : Object.keys(gameState.votes);
@@ -379,7 +381,7 @@ function VotingPhase({
           <div className="text-center">
             <p className="text-white/40 text-sm mb-1">You voted:</p>
             <p className={`font-display font-bold text-2xl ${myVote === 'truth' ? 'text-emerald-400' : 'text-red-400'}`}>
-              {myVote === 'truth' ? '🟢 TRUTH' : '🔴 LIE'}
+              {myVote === 'truth' ? `🟢 ${t('game.liedetector.truth').toUpperCase()}` : `🔴 ${t('game.liedetector.lie').toUpperCase()}`}
             </p>
             <p className="text-white/30 text-sm mt-3 animate-pulse">
               Waiting for others... ({votedIds.length}/{nonSpeakers.length})
@@ -395,7 +397,7 @@ function VotingPhase({
               bg-gradient-to-br from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500
               shadow-lg shadow-emerald-500/20 active:scale-[0.97] transition-all flex items-center justify-center gap-3"
           >
-            🟢 TRUTH
+            🟢 {t('game.liedetector.truth').toUpperCase()}
           </button>
           <button
             onClick={() => handleVote('lie')}
@@ -403,7 +405,7 @@ function VotingPhase({
               bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500
               shadow-lg shadow-red-500/20 active:scale-[0.97] transition-all flex items-center justify-center gap-3"
           >
-            🔴 LIE
+            🔴 {t('game.liedetector.lie').toUpperCase()}
           </button>
         </div>
       )}
@@ -418,6 +420,7 @@ function RevealPhase({
   gameState: LieDetectorState;
   myId: string;
 }) {
+  const { t } = useLocale();
   const speaker = gameState.players.find(p => p.id === gameState.currentSpeakerId);
   const isTruth = gameState.speakerTruth === true;
   const votes = gameState.votes as Record<string, { vote: 'truth' | 'lie'; votedAt: number }>;
@@ -481,7 +484,7 @@ function RevealPhase({
               <span className="flex-1 text-sm font-semibold text-white truncate">{player.name}</span>
               {v ? (
                 <span className={`text-sm font-bold ${correct ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {correct ? '✓' : '✗'} {v.vote === 'truth' ? 'Truth' : 'Lie'}
+                  {correct ? '✓' : '✗'} {v.vote === 'truth' ? t('game.liedetector.truth') : t('game.liedetector.lie')}
                 </span>
               ) : (
                 <span className="text-xs text-white/30">No vote</span>
@@ -557,6 +560,7 @@ function LeaderboardView({
   session: { playerId: string } | null;
 }) {
   const [restarting, setRestarting] = useState(false);
+  const { t } = useLocale();
   const newAchievements = useAchievementCheck();
 
   async function handlePlayAgain() {
@@ -584,8 +588,8 @@ function LeaderboardView({
 
   return (
     <div className="animate-slide-up text-center">
-      <h2 className="font-display font-bold text-3xl text-white mb-2">Game Over!</h2>
-      <p className="text-white/40 text-sm mb-8">Final Scores</p>
+      <h2 className="font-display font-bold text-3xl text-white mb-2">{t('common.gameOver')}</h2>
+      <p className="text-white/40 text-sm mb-8">{t('common.finalScores')}</p>
 
       {/* Confetti */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -642,7 +646,7 @@ function LeaderboardView({
 
               <div className="text-right">
                 <p className="text-xl font-display font-bold text-white"><AnimatedNumber value={gameState.scores[player.id] || 0} /></p>
-                <p className="text-xs text-white/30">points</p>
+                <p className="text-xs text-white/30">{t('common.points')}</p>
               </div>
             </div>
           );
@@ -650,7 +654,7 @@ function LeaderboardView({
       </div>
 
       <div className="space-y-3">
-        <ShareResults gameName="Lie Detector" winnerName={sorted[0]?.name ?? ''} winnerScore={gameState.scores[sorted[0]?.id] || 0} />
+        <ShareResults gameName={t('game.lie-detector.name')} winnerName={sorted[0]?.name ?? ''} winnerScore={gameState.scores[sorted[0]?.id] || 0} />
         {isHost ? (
           <>
             <button
@@ -661,7 +665,7 @@ function LeaderboardView({
                 shadow-lg shadow-orange-500/25
                 active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
             >
-              {restarting ? 'Starting...' : 'Play Again'}
+              {restarting ? 'Starting...' : t('common.playAgain')}
             </button>
             <button
               onClick={async () => {
@@ -670,19 +674,19 @@ function LeaderboardView({
               }}
               className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
             >
-              Back to Lobby
+              {t('common.backToLobby')}
             </button>
           </>
         ) : (
           <>
             <div className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg bg-white/5 text-white/30 text-center">
-              Waiting for host to restart...
+              {t('common.waitingForHost')}
             </div>
             <button
               onClick={() => router.push(`/room/${roomCode}`)}
               className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
             >
-              Back to Lobby
+              {t('common.backToLobby')}
             </button>
           </>
         )}
@@ -694,6 +698,7 @@ function LeaderboardView({
 
 export default function LieDetectorPage({ params }: { params: { code: string } }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [session] = useState(() => typeof window !== 'undefined' ? getSession() : null);
   const [gameState, setGameState] = useState<LieDetectorState | null>(null);
   const [myVote, setMyVote] = useState<'truth' | 'lie' | null>(null);
@@ -883,10 +888,10 @@ export default function LieDetectorPage({ params }: { params: { code: string } }
       <main className="min-h-[100dvh] flex items-center justify-center px-6">
         <div className="text-center">
           <div className="text-4xl mb-4">🏁</div>
-          <h2 className="text-xl font-display font-bold text-white mb-2">This room has ended</h2>
-          <p className="text-white/50 text-sm mb-6">The game session is no longer available.</p>
+          <h2 className="text-xl font-display font-bold text-white mb-2">{t('common.roomEnded')}</h2>
+          <p className="text-white/50 text-sm mb-6">{t('common.roomEndedDesc')}</p>
           <button onClick={() => router.push('/')} className="px-6 py-3 rounded-xl glass text-white font-semibold">
-            Go Home
+            {t('common.goHome')}
           </button>
         </div>
       </main>
@@ -899,7 +904,7 @@ export default function LieDetectorPage({ params }: { params: { code: string } }
         <div className="text-center">
           <p className="text-white/50 mb-4">{error}</p>
           <button onClick={() => router.push(`/room/${params.code}`)} className="px-6 py-3 rounded-xl glass text-white font-semibold">
-            Back to Lobby
+            {t('common.backToLobby')}
           </button>
         </div>
       </main>
@@ -911,7 +916,7 @@ export default function LieDetectorPage({ params }: { params: { code: string } }
       <main className="min-h-[100dvh] flex items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-2 border-orange-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-white/50 text-sm font-body">Loading game...</p>
+          <p className="text-white/50 text-sm font-body">{t('common.loading')}</p>
         </div>
       </main>
     );

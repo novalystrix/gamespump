@@ -14,6 +14,7 @@ import { HowToPlay } from '@/components/HowToPlay';
 import { Podium } from '@/components/Podium';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
+import { useLocale } from '@/hooks/useLocale';
 
 const ROUND_TIME = 30; // seconds
 
@@ -205,6 +206,7 @@ function ResultsView({
   myId: string;
   previousScores: Record<string, number>;
 }) {
+  const { t } = useLocale();
   const sorted = [...gameState.players].sort((a, b) => {
     const aGain = (gameState.scores[a.id] || 0) - (previousScores[a.id] || 0);
     const bGain = (gameState.scores[b.id] || 0) - (previousScores[b.id] || 0);
@@ -243,7 +245,7 @@ function ResultsView({
               )}
               <div className="text-right">
                 <p className="text-sm font-bold text-white">{gameState.scores[player.id] || 0}</p>
-                <p className="text-xs text-white/30">pts</p>
+                <p className="text-xs text-white/30">{t('common.pts')}</p>
               </div>
             </div>
             {words.length > 0 && (
@@ -286,6 +288,7 @@ function LeaderboardView({
   session: { playerId: string } | null;
 }) {
   const [restarting, setRestarting] = useState(false);
+  const { t } = useLocale();
   const newAchievements = useAchievementCheck();
 
   const sorted = [...gameState.players].sort(
@@ -318,8 +321,8 @@ function LeaderboardView({
 
   return (
     <div className="animate-slide-up text-center">
-      <h2 className="font-display font-bold text-3xl text-white mb-2">Game Over!</h2>
-      <p className="text-white/40 text-sm mb-8">Final Scores</p>
+      <h2 className="font-display font-bold text-3xl text-white mb-2">{t('common.gameOver')}</h2>
+      <p className="text-white/40 text-sm mb-8">{t('common.finalScores')}</p>
 
       {/* Confetti */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -379,7 +382,7 @@ function LeaderboardView({
 
               <div className="text-right">
                 <p className="text-xl font-display font-bold text-white"><AnimatedNumber value={gameState.scores[player.id] || 0} /></p>
-                <p className="text-xs text-white/30">points</p>
+                <p className="text-xs text-white/30">{t('common.points')}</p>
               </div>
             </div>
           );
@@ -387,7 +390,7 @@ function LeaderboardView({
       </div>
 
       <div className="space-y-3">
-        <ShareResults gameName="Word Blitz" winnerName={sorted[0]?.name ?? ''} winnerScore={gameState.scores[sorted[0]?.id] || 0} />
+        <ShareResults gameName={t('game.word-blitz.name')} winnerName={sorted[0]?.name ?? ''} winnerScore={gameState.scores[sorted[0]?.id] || 0} />
         {isHost ? (
           <>
             <button
@@ -398,26 +401,26 @@ function LeaderboardView({
                 shadow-lg shadow-cyan-500/25
                 active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
             >
-              {restarting ? 'Starting...' : 'Play Again'}
+              {restarting ? 'Starting...' : t('common.playAgain')} {/* TODO: add i18n key for 'Starting...' */}
             </button>
             <button
               onClick={handleRematch}
               className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
             >
-              Rematch (Back to Lobby)
+              {t('common.rematch')}
             </button>
           </>
         ) : (
           <>
             <div className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg
               bg-white/5 text-white/30 text-center">
-              Waiting for host to restart...
+              {t('common.waitingForHost')}
             </div>
             <button
               onClick={() => router.push(`/room/${roomCode}`)}
               className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
             >
-              Back to Lobby
+              {t('common.backToLobby')}
             </button>
           </>
         )}
@@ -430,6 +433,7 @@ function LeaderboardView({
 // Main Component
 export default function WordBlitzPage({ params }: { params: { code: string } }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [session] = useState(() => typeof window !== 'undefined' ? getSession() : null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [inputWord, setInputWord] = useState('');
@@ -629,13 +633,13 @@ export default function WordBlitzPage({ params }: { params: { code: string } }) 
       <main className="min-h-[100dvh] flex items-center justify-center px-6">
         <div className="text-center">
           <div className="text-4xl mb-4">🏁</div>
-          <h2 className="text-xl font-display font-bold text-white mb-2">This room has ended</h2>
-          <p className="text-white/50 text-sm mb-6">The game session is no longer available.</p>
+          <h2 className="text-xl font-display font-bold text-white mb-2">{t('common.roomEnded')}</h2>
+          <p className="text-white/50 text-sm mb-6">{t('common.roomEndedDesc')}</p>
           <button
             onClick={() => router.push('/')}
             className="px-6 py-3 rounded-xl glass text-white font-semibold"
           >
-            Go Home
+            {t('common.goHome')}
           </button>
         </div>
       </main>
@@ -651,7 +655,7 @@ export default function WordBlitzPage({ params }: { params: { code: string } }) 
             onClick={() => router.push(`/room/${params.code}`)}
             className="px-6 py-3 rounded-xl glass text-white font-semibold"
           >
-            Back to Lobby
+            {t('common.backToLobby')}
           </button>
         </div>
       </main>
@@ -663,7 +667,7 @@ export default function WordBlitzPage({ params }: { params: { code: string } }) 
       <main className="min-h-[100dvh] flex items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-white/50 text-sm font-body">Loading game...</p>
+          <p className="text-white/50 text-sm font-body">{t('common.loading')}</p>
         </div>
       </main>
     );
@@ -735,7 +739,7 @@ export default function WordBlitzPage({ params }: { params: { code: string } }) 
             {/* Letter tiles */}
             <div className="mb-5">
               <p className="text-xs text-white/40 text-center mb-3 uppercase tracking-widest font-semibold">
-                Your letters
+                {t('game.wordblitz.yourLetters')}
               </p>
               <LetterTiles letters={gameState.letters} />
             </div>
@@ -757,7 +761,7 @@ export default function WordBlitzPage({ params }: { params: { code: string } }) 
                     type="text"
                     value={inputWord}
                     onChange={e => setInputWord(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))}
-                    placeholder="Type a word..."
+                    placeholder={t('game.wordblitz.typeWord')}
                     maxLength={7}
                     autoComplete="off"
                     autoCapitalize="characters"
@@ -803,7 +807,7 @@ export default function WordBlitzPage({ params }: { params: { code: string } }) 
 
                 {myWords.length === 0 && (
                   <p className="text-center text-white/20 text-sm italic mt-2">
-                    Start typing words using the letters above
+                    {t('game.wordblitz.startTyping')}
                   </p>
                 )}
               </>

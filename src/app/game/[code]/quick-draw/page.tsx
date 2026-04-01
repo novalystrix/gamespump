@@ -14,6 +14,7 @@ import { HowToPlay } from '@/components/HowToPlay';
 import { Podium } from '@/components/Podium';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
+import { useLocale } from '@/hooks/useLocale';
 
 const ROUND_TIME = 30;
 
@@ -346,6 +347,7 @@ function ResultsView({
   myId: string;
   previousScores: Record<string, number>;
 }) {
+  const { t } = useLocale();
   const drawer = gameState.players.find(p => p.id === gameState.currentDrawerId);
   const guesserIds = gameState.players.map(p => p.id).filter(id => id !== gameState.currentDrawerId);
 
@@ -415,7 +417,7 @@ function ResultsView({
               )}
               <div className="text-right">
                 <p className="text-sm font-bold text-white">{gameState.scores[playerId] || 0}</p>
-                <p className="text-xs text-white/30">pts</p>
+                <p className="text-xs text-white/30">{t('common.pts')}</p>
               </div>
             </div>
           );
@@ -446,7 +448,7 @@ function ResultsView({
               )}
               <div className="text-right">
                 <p className="text-sm font-bold text-white">{gameState.scores[drawer.id] || 0}</p>
-                <p className="text-xs text-white/30">pts</p>
+                <p className="text-xs text-white/30">{t('common.pts')}</p>
               </div>
             </div>
           );
@@ -476,6 +478,7 @@ function LeaderboardView({
   session: { playerId: string } | null;
 }) {
   const [restarting, setRestarting] = useState(false);
+  const { t } = useLocale();
   const newAchievements = useAchievementCheck();
 
   const sorted = [...gameState.players].sort(
@@ -508,8 +511,8 @@ function LeaderboardView({
 
   return (
     <div className="animate-slide-up text-center">
-      <h2 className="font-display font-bold text-3xl text-white mb-1">Game Over!</h2>
-      <p className="text-white/40 text-sm mb-8">Final Scores</p>
+      <h2 className="font-display font-bold text-3xl text-white mb-1">{t('common.gameOver')}</h2>
+      <p className="text-white/40 text-sm mb-8">{t('common.finalScores')}</p>
 
       {/* Confetti */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -566,7 +569,7 @@ function LeaderboardView({
               </div>
               <div className="text-right">
                 <p className="text-xl font-display font-bold text-white"><AnimatedNumber value={gameState.scores[player.id] || 0} /></p>
-                <p className="text-xs text-white/30">points</p>
+                <p className="text-xs text-white/30">{t('common.points')}</p>
               </div>
             </div>
           );
@@ -574,7 +577,7 @@ function LeaderboardView({
       </div>
 
       <div className="space-y-3">
-        <ShareResults gameName="Quick Draw" winnerName={sorted[0]?.name ?? ''} winnerScore={gameState.scores[sorted[0]?.id] || 0} />
+        <ShareResults gameName={t('game.quick-draw.name')} winnerName={sorted[0]?.name ?? ''} winnerScore={gameState.scores[sorted[0]?.id] || 0} />
         {isHost ? (
           <>
             <button
@@ -584,25 +587,25 @@ function LeaderboardView({
                 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white
                 shadow-lg shadow-violet-500/25 active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
             >
-              {restarting ? 'Starting...' : 'Play Again'}
+              {restarting ? 'Starting...' : t('common.playAgain')}
             </button>
             <button
               onClick={handleRematch}
               className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
             >
-              Rematch (Back to Lobby)
+              {t('common.rematch')}
             </button>
           </>
         ) : (
           <>
             <div className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg bg-white/5 text-white/30 text-center">
-              Waiting for host to restart...
+              {t('common.waitingForHost')}
             </div>
             <button
               onClick={() => router.push(`/room/${roomCode}`)}
               className="w-full py-3 text-white/30 text-sm hover:text-white/50 transition-colors"
             >
-              Back to Lobby
+              {t('common.backToLobby')}
             </button>
           </>
         )}
@@ -616,6 +619,7 @@ function LeaderboardView({
 
 export default function QuickDrawPage({ params }: { params: { code: string } }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [session] = useState(() => typeof window !== 'undefined' ? getSession() : null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [guessInput, setGuessInput] = useState('');
@@ -819,13 +823,13 @@ export default function QuickDrawPage({ params }: { params: { code: string } }) 
       <main className="min-h-[100dvh] flex items-center justify-center px-6">
         <div className="text-center">
           <div className="text-4xl mb-4">🏁</div>
-          <h2 className="text-xl font-display font-bold text-white mb-2">This room has ended</h2>
-          <p className="text-white/50 text-sm mb-6">The game session is no longer available.</p>
+          <h2 className="text-xl font-display font-bold text-white mb-2">{t('common.roomEnded')}</h2>
+          <p className="text-white/50 text-sm mb-6">{t('common.roomEndedDesc')}</p>
           <button
             onClick={() => router.push('/')}
             className="px-6 py-3 rounded-xl glass text-white font-semibold"
           >
-            Go Home
+            {t('common.goHome')}
           </button>
         </div>
       </main>
@@ -841,7 +845,7 @@ export default function QuickDrawPage({ params }: { params: { code: string } }) 
             onClick={() => router.push(`/room/${params.code}`)}
             className="px-6 py-3 rounded-xl glass text-white font-semibold"
           >
-            Back to Lobby
+            {t('common.backToLobby')}
           </button>
         </div>
       </main>
@@ -1019,7 +1023,7 @@ export default function QuickDrawPage({ params }: { params: { code: string } }) 
                           type="text"
                           value={guessInput}
                           onChange={e => setGuessInput(e.target.value)}
-                          placeholder="Type your guess..."
+                          placeholder={t('game.quickdraw.guessPlaceholder')}
                           autoComplete="off"
                           autoFocus
                           className="flex-1 px-4 py-3 rounded-xl bg-white/10 text-white placeholder-white/30 font-semibold border border-white/10 focus:border-violet-400 outline-none transition-colors"
