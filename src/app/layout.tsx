@@ -4,6 +4,7 @@ import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { AnalyticsInit } from "@/components/AnalyticsInit";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { headers } from "next/headers";
 import AnalyticsProvider from "@/components/AnalyticsProvider";
 
@@ -93,6 +94,8 @@ export default function RootLayout({
   return (
     <html lang={locale} dir={dir} className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -118,6 +121,7 @@ export default function RootLayout({
         </a>
         <LanguageToggle />
         <ServiceWorkerRegistration />
+        <InstallPrompt />
         <AnalyticsInit />
         <AnalyticsProvider />
         {children}
