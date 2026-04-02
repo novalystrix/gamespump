@@ -528,7 +528,7 @@ function LeaderboardView({
 // Main Component
 export default function TriviaClashPage({ params }: { params: { code: string } }) {
   const router = useRouter();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [session] = useState(() => typeof window !== 'undefined' ? getSession() : null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [myAnswer, setMyAnswer] = useState<number | null>(null);
@@ -545,7 +545,7 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
 
   const fetchGameState = useCallback(async () => {
     try {
-      const res = await fetch(`/api/rooms/${params.code}/game-state`);
+      const res = await fetch(`/api/rooms/${params.code}/game-state?locale=${locale}`);
       if (!res.ok) {
         const data = await res.json();
         if (data.error === 'No active game') {
@@ -575,7 +575,7 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
     } catch {
       // Silently retry
     }
-  }, [params.code, router]);
+  }, [params.code, router, locale]);
 
   useEffect(() => {
     fetchGameState();

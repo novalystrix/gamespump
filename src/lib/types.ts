@@ -32,6 +32,8 @@ export interface TriviaGameState {
   type: 'trivia-clash';
   currentQuestion: number;
   questions: TriviaQuestion[];
+  questions_en?: TriviaQuestion[];
+  questions_he?: TriviaQuestion[];
   answers: Record<string, TriviaAnswer>; // playerId -> answer for current question
   scores: Record<string, number>; // playerId -> total score
   questionStartedAt: number;
@@ -73,6 +75,8 @@ export interface ThisOrThatGameState {
   type: 'this-or-that';
   currentRound: number;
   rounds: ThisOrThatRound[];
+  rounds_en?: ThisOrThatRound[];
+  rounds_he?: ThisOrThatRound[];
   answers: Record<string, 'A' | 'B'>;
   voteTimes: Record<string, number>; // playerId -> timestamp of vote
   scores: Record<string, number>;
