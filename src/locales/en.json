@@ -294,5 +294,9 @@
   "seo.lie-detector.step1": "Each round, one player is the speaker",
   "seo.lie-detector.step2": "The speaker makes a statement — it can be true or a lie",
   "seo.lie-detector.step3": "Other players vote whether it's truth or a lie",
-  "seo.lie-detector.step4": "Correct guesses earn points — but the speaker earns points for every player they fool!"
+  "seo.lie-detector.step4": "Correct guesses earn points — but the speaker earns points for every player they fool!",
+
+  "pwa.installBanner": "Install GamesPump for the best experience",
+  "pwa.install": "Install",
+  "pwa.dismiss": "Not now"
 }
