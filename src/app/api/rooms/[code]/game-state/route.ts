@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getRoom, advanceEmojiBattle, forceReactionResults, advanceReactionRound, forceColorChaosResults, advanceColorChaosRound } from '@/lib/rooms';
-import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState, LieDetectorGameState, ColorChaosGameState } from '@/lib/types';
+import { getRoom, advanceEmojiBattle, forceReactionResults, advanceReactionRound, forceColorChaosResults, advanceColorChaosRound, forceCharadesResults } from '@/lib/rooms';
+import { TriviaGameState, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState, LieDetectorGameState, ColorChaosGameState, CharadesGameState } from '@/lib/types';
 
 export async function GET(
   request: Request,
@@ -269,6 +269,38 @@ export async function GET(
           answers: cgs.phase === 'playing' ? Object.keys(cgs.answers) : cgs.answers,
           scores: cgs.scores,
           roundStartedAt: cgs.roundStartedAt,
+          players: room.players,
+        });
+      }
+
+      case 'charades': {
+        const cgs = gs as CharadesGameState;
+        const requestingPid = new URL(request.url).searchParams.get('pid') || '';
+        const isDescriber = requestingPid === cgs.currentDescriberId;
+
+        // Auto-advance: describing phase expires after 45 seconds
+        if (cgs.phase === 'describing' && Date.now() - cgs.roundStartedAt > 45000) {
+          forceCharadesResults(params.code);
+        }
+
+        return NextResponse.json({
+          gameType: 'charades',
+          phase: cgs.phase,
+          currentRound: cgs.currentRound,
+          totalRounds: cgs.totalRounds,
+          currentDescriberId: cgs.currentDescriberId,
+          // Only describer sees the word and forbidden words during describing phase
+          currentWord: (isDescriber || cgs.phase !== 'describing')
+            ? cgs.currentWord
+            : null,
+          clues: cgs.clues,
+          guesses: cgs.phase === 'describing'
+            ? Object.fromEntries(Object.entries(cgs.guesses).map(([k, v]) => [k, { correct: v.correct, guessedAt: v.guessedAt }]))
+            : cgs.guesses,
+          correctGuessers: cgs.correctGuessers,
+          scores: cgs.scores,
+          roundStartedAt: cgs.roundStartedAt,
+          forbiddenUsed: cgs.forbiddenUsed,
           players: room.players,
         });
       }

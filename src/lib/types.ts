@@ -200,7 +200,30 @@ export interface ColorChaosGameState {
   phase: 'playing' | 'results' | 'leaderboard';
 }
 
-export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState | WordBlitzGameState | QuickDrawGameState | EmojiBattleGameState | ReactionSpeedGameState | LieDetectorGameState | ColorChaosGameState;
+// Charades types
+export interface CharadesWord {
+  word: string;
+  forbidden: string[]; // 3-4 forbidden words
+}
+
+export interface CharadesGameState {
+  type: 'charades';
+  currentRound: number;
+  totalRounds: number;
+  describerOrder: string[]; // playerIds in order
+  currentDescriberId: string;
+  words: CharadesWord[]; // one per round (server-side, hidden from guessers)
+  currentWord: CharadesWord; // current round word
+  clues: string[]; // clues typed by describer (visible to all)
+  guesses: Record<string, { guess: string; correct: boolean; guessedAt: number }>;
+  correctGuessers: string[]; // in order of correct guess
+  scores: Record<string, number>;
+  roundStartedAt: number;
+  phase: 'describing' | 'results' | 'leaderboard';
+  forbiddenUsed: boolean; // true if describer used a forbidden word
+}
+
+export type GameState = TriviaGameState | MemoryMatchGameState | ThisOrThatGameState | SpeedMathGameState | WordBlitzGameState | QuickDrawGameState | EmojiBattleGameState | ReactionSpeedGameState | LieDetectorGameState | ColorChaosGameState | CharadesGameState;
 
 export interface Room {
   code: string;
@@ -355,5 +378,15 @@ export const GAMES: GameInfo[] = [
     durationMinutes: '3-5',
     icon: 'palette',
     color: 'from-rose-500 to-violet-500',
+  },
+  {
+    id: 'charades',
+    name: 'Charades',
+    description: 'Describe the word without using forbidden words. Think fast, speak carefully!',
+    minPlayers: 3,
+    maxPlayers: 8,
+    durationMinutes: '5-10',
+    icon: 'message-circle',
+    color: 'from-teal-500 to-cyan-500',
   },
 ];

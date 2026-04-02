@@ -29,6 +29,7 @@ const STEP_COUNTS: Record<string, number> = {
   'reaction-speed': 4,
   'color-chaos': 4,
   'lie-detector': 4,
+  'charades': 4,
 };
 
 // ── Static params for SSG ───────────────────────────────────────────────────

@@ -1,4 +1,5 @@
-import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState, LieDetectorGameState, ColorChaosGameState, ColorChaosRound, GAMES } from './types';
+import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState, LieDetectorGameState, ColorChaosGameState, ColorChaosRound, CharadesGameState, GAMES } from './types';
+import { getShuffledCharadesWords } from './charades-words';
 import { generateRound } from './emoji-sets';
 import { getShuffledQuestions } from './trivia-questions';
 import { getShuffledHebrewQuestions } from './trivia-questions-he';
@@ -834,6 +835,9 @@ export function startGame(code: string, hostId: string): Room | null {
     case 'color-chaos':
       gameState = initColorChaos(room);
       break;
+    case 'charades':
+      gameState = initCharades(room);
+      break;
     default:
       return null;
   }
@@ -1255,6 +1259,142 @@ export function advanceLieDetectorPhase(code: string): Room | null {
   }
 
   return null;
+}
+
+// ── Charades ──────────────────────────────────────────────────────────────
+
+function initCharades(room: Room): CharadesGameState {
+  const describerOrder = shuffle(room.players.map(p => p.id));
+  const words = getShuffledCharadesWords(room.players.length, room.locale);
+  const scores: Record<string, number> = {};
+  room.players.forEach(p => { scores[p.id] = 0; });
+
+  return {
+    type: 'charades',
+    currentRound: 0,
+    totalRounds: room.players.length,
+    describerOrder,
+    currentDescriberId: describerOrder[0],
+    words,
+    currentWord: words[0],
+    clues: [],
+    guesses: {},
+    correctGuessers: [],
+    scores,
+    roundStartedAt: Date.now(),
+    phase: 'describing',
+    forbiddenUsed: false,
+  };
+}
+
+export function submitCharadesClue(code: string, playerId: string, clue: string): boolean {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'charades') return false;
+  const gs = room.gameState as CharadesGameState;
+  if (gs.phase !== 'describing') return false;
+  if (gs.currentDescriberId !== playerId) return false;
+
+  const clueNorm = clue.trim().toLowerCase();
+  if (!clueNorm) return false;
+
+  // Check if clue contains the target word or any forbidden words (case-insensitive)
+  const word = gs.currentWord.word.toLowerCase();
+  if (clueNorm.includes(word)) {
+    gs.forbiddenUsed = true;
+  }
+  for (const forbidden of gs.currentWord.forbidden) {
+    if (clueNorm.includes(forbidden.toLowerCase())) {
+      gs.forbiddenUsed = true;
+      break;
+    }
+  }
+
+  gs.clues.push(clue.trim());
+  room.lastActivity = Date.now();
+  return true;
+}
+
+export function submitCharadesGuess(
+  code: string,
+  playerId: string,
+  guess: string
+): { success: boolean; correct: boolean; points: number; error?: string } {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'charades') {
+    return { success: false, correct: false, points: 0, error: 'Room or game not found' };
+  }
+  const gs = room.gameState as CharadesGameState;
+  if (gs.phase !== 'describing') return { success: false, correct: false, points: 0, error: 'Not in describing phase' };
+  if (playerId === gs.currentDescriberId) return { success: false, correct: false, points: 0, error: 'Describer cannot guess' };
+  if (gs.guesses[playerId]?.correct) return { success: false, correct: false, points: 0, error: 'Already guessed correctly' };
+
+  const correct = guess.trim().toLowerCase() === gs.currentWord.word.toLowerCase();
+  gs.guesses[playerId] = { guess: guess.trim(), correct, guessedAt: Date.now() };
+
+  let points = 0;
+  if (correct) {
+    gs.correctGuessers.push(playerId);
+    const rank = gs.correctGuessers.length;
+    points = rank === 1 ? 100 : rank === 2 ? 75 : rank === 3 ? 50 : 25;
+    gs.scores[playerId] = (gs.scores[playerId] || 0) + points;
+
+    // Award describer points only if no forbidden word was used
+    if (!gs.forbiddenUsed) {
+      gs.scores[gs.currentDescriberId] = (gs.scores[gs.currentDescriberId] || 0) + 50;
+    }
+
+    // End round if all non-describer players have guessed correctly
+    const guesserIds = room.players.map(p => p.id).filter(id => id !== gs.currentDescriberId);
+    if (guesserIds.every(id => gs.guesses[id]?.correct)) {
+      gs.phase = 'results';
+    }
+  }
+
+  room.lastActivity = Date.now();
+  return { success: true, correct, points };
+}
+
+export function forceCharadesResults(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'charades') return null;
+  const gs = room.gameState as CharadesGameState;
+  if (gs.phase !== 'describing') return null;
+  gs.phase = 'results';
+  room.lastActivity = Date.now();
+  return room;
+}
+
+export function advanceCharadesRound(code: string): Room | null {
+  const room = getRoom(code);
+  if (!room || !room.gameState || room.gameState.type !== 'charades') return null;
+  const gs = room.gameState as CharadesGameState;
+  if (gs.phase !== 'results') return null;
+
+  const playerIds = new Set(room.players.map(p => p.id));
+  let nextRound = gs.currentRound + 1;
+
+  // Skip rounds where the describer has left
+  while (nextRound < gs.totalRounds && !playerIds.has(gs.describerOrder[nextRound])) {
+    nextRound++;
+  }
+
+  if (nextRound >= gs.totalRounds) {
+    gs.phase = 'leaderboard';
+    room.status = 'finished';
+  } else {
+    gs.currentRound = nextRound;
+    gs.currentDescriberId = gs.describerOrder[nextRound];
+    gs.currentWord = gs.words[nextRound];
+    gs.clues = [];
+    gs.guesses = {};
+    gs.correctGuessers = [];
+    gs.roundStartedAt = Date.now();
+    gs.phase = 'describing';
+    gs.forbiddenUsed = false;
+  }
+
+  room.lastActivity = Date.now();
+  return room;
 }
 
 export function advanceEmojiBattle(code: string): Room | null {
