@@ -15,6 +15,7 @@ import { Podium } from '@/components/Podium';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
 import { useLocale } from '@/hooks/useLocale';
+import { hapticTap, hapticCorrect, hapticWrong, hapticCelebrate } from '@/lib/haptics';
 
 function playSound(name: string) {
   if (typeof window === 'undefined') return;
@@ -155,11 +156,13 @@ function StatementPhase({
   roomCode: string;
   session: { playerId: string } | null;
 }) {
+  const { t } = useLocale();
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [choiceStep, setChoiceStep] = useState(false);
   const isSpeaker = myId === gameState.currentSpeakerId;
   const speaker = gameState.players.find(p => p.id === gameState.currentSpeakerId);
+  const speakerLeft = !isSpeaker && !gameState.players.some(p => p.id === gameState.currentSpeakerId);
 
   async function handleSubmitStatement(isTrue: boolean) {
     if (!session || submitting) return;
@@ -253,6 +256,14 @@ function StatementPhase({
   }
 
   // Other players waiting
+  if (speakerLeft) {
+    return (
+      <div className="animate-slide-up flex-1 flex flex-col items-center justify-center">
+        <p className="text-white/40 text-sm italic animate-pulse">{t('common.playerLeft')}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="animate-slide-up flex-1 flex flex-col items-center justify-center">
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -319,6 +330,7 @@ function VotingPhase({
   async function handleVote(vote: 'truth' | 'lie') {
     if (!session || myVote !== null) return;
     setMyVote(vote);
+    hapticTap();
     playSound('vote');
     await fetch(`/api/rooms/${roomCode}/lie-detector`, {
       method: 'POST',
@@ -859,9 +871,14 @@ export default function LieDetectorPage({ params }: { params: { code: string } }
       const myVoteData = session?.playerId ? votes[session.playerId] : null;
       if (myVoteData && gameState.speakerTruth !== null) {
         const correctAnswer = gameState.speakerTruth ? 'truth' : 'lie';
-        setTimeout(() => playSound(myVoteData.vote === correctAnswer ? 'correct' : 'wrong'), 500);
+        const wasCorrect = myVoteData.vote === correctAnswer;
+        setTimeout(() => {
+          playSound(wasCorrect ? 'correct' : 'wrong');
+          if (wasCorrect) { hapticCorrect(); } else { hapticWrong(); }
+        }, 500);
       }
     } else if (phase === 'leaderboard' && prev !== 'leaderboard') {
+      hapticCelebrate();
       playSound('win');
     }
 

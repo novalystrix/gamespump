@@ -15,6 +15,7 @@ import { Podium } from '@/components/Podium';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
 import { useLocale } from '@/hooks/useLocale';
+import { hapticCorrect, hapticWrong, hapticCelebrate } from '@/lib/haptics';
 
 function playSound(name: string) {
   if (typeof window === 'undefined') return;
@@ -449,6 +450,7 @@ export default function MemoryMatchPage({ params }: { params: { code: string } }
 
   useEffect(() => {
     if (gameState?.phase === 'leaderboard' && prevPhaseRef.current !== 'leaderboard') {
+      hapticCelebrate();
       playSound('win');
     }
     prevPhaseRef.current = gameState?.phase ?? null;
@@ -458,6 +460,11 @@ export default function MemoryMatchPage({ params }: { params: { code: string } }
   useEffect(() => {
     if (gameState?.turnPhase === 'showing-result' && prevTurnPhaseRef.current !== 'showing-result') {
       const isMatch = gameState.firstPick !== null && gameState.board[gameState.firstPick]?.matched;
+      if (isMatch) {
+        hapticCorrect();
+      } else {
+        hapticWrong();
+      }
       playSound(isMatch ? 'match' : 'no-match');
     }
     prevTurnPhaseRef.current = gameState?.turnPhase ?? null;

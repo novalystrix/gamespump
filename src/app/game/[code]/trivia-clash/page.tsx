@@ -16,6 +16,7 @@ import { GameSummary } from '@/components/GameSummary';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
 import { useLocale } from '@/hooks/useLocale';
+import { hapticCorrect, hapticWrong, hapticCelebrate } from '@/lib/haptics';
 
 const QUESTION_TIME = 15; // seconds
 const REACTION_EMOJIS = ['👏', '🔥', '😂', '🤔'];
@@ -646,6 +647,7 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
     if (gameState?.phase === 'results' && gameState.question.correctIndex !== undefined) {
       const isCorrect = myAnswer !== null && myAnswer === gameState.question.correctIndex;
       if (!isCorrect) {
+        hapticWrong();
         setShaking(true);
         setTimeout(() => setShaking(false), 300);
         if (streakRef.current >= 3) {
@@ -656,6 +658,7 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
         streakRef.current = 0;
         setStreak(0);
       } else {
+        hapticCorrect();
         streakRef.current += 1;
         setStreak(streakRef.current);
       }
@@ -665,6 +668,7 @@ export default function TriviaClashPage({ params }: { params: { code: string } }
 
   useEffect(() => {
     if (gameState?.phase === 'leaderboard' && session?.playerId) {
+      hapticCelebrate();
       saveGameResult({
         gameType: 'trivia-clash',
         roomCode: params.code,

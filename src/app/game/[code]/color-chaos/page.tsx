@@ -16,6 +16,7 @@ import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
 import { HowToPlay } from '@/components/HowToPlay';
 import { useLocale } from '@/hooks/useLocale';
+import { hapticCorrect, hapticWrong, hapticCelebrate } from '@/lib/haptics';
 
 const ROUND_TIME = 8; // seconds
 
@@ -391,6 +392,7 @@ export default function ColorChaosPage({ params }: { params: { code: string } })
 
   useEffect(() => {
     if (gameState?.phase === 'leaderboard' && session?.playerId) {
+      hapticCelebrate();
       const myScore = gameState.scores[session.playerId] ?? 0;
       trackGameEnd('color-chaos', myScore, params.code);
       saveGameResult({
@@ -410,6 +412,7 @@ export default function ColorChaosPage({ params }: { params: { code: string } })
     const isCorrect = gameState.round.options[answerIndex]?.name === gameState.round.inkColorName;
     setFlashIndex(answerIndex);
     setFlashType(isCorrect ? 'correct' : 'wrong');
+    if (isCorrect) { hapticCorrect(); } else { hapticWrong(); }
     playSound(isCorrect ? 'correct' : 'wrong');
     if (!isCorrect) {
       setShaking(true);

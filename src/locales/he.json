@@ -46,6 +46,7 @@
   "common.goHome": "חזרה הביתה",
   "common.copied": "הועתק!",
   "common.rematch": "ריטרן (חזרה ללובי)",
+  "common.playerLeft": "שחקן עזב — מדלג...",
   "lobby.waitingForPlayers": "ממתינים לשחקנים...",
   "lobby.startGame": "התחילו משחק",
   "lobby.ready": "מוכנים",

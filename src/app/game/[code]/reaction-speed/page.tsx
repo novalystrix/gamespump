@@ -16,6 +16,7 @@ import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
 import { HowToPlay } from '@/components/HowToPlay';
 import { useLocale } from '@/hooks/useLocale';
+import { hapticCorrect, hapticWrong, hapticCelebrate } from '@/lib/haptics';
 
 function playSound(name: string) {
   if (typeof window === 'undefined') return;
@@ -334,10 +335,7 @@ export default function ReactionSpeedPage({ params }: { params: { code: string }
         if (!goSoundFiredRef.current) {
           goSoundFiredRef.current = true;
           playSound('go');
-          // Haptic feedback
-          if (typeof navigator !== 'undefined' && navigator.vibrate) {
-            navigator.vibrate(50);
-          }
+          hapticCorrect();
         }
       }
     };
@@ -349,6 +347,7 @@ export default function ReactionSpeedPage({ params }: { params: { code: string }
   // Save result on leaderboard
   useEffect(() => {
     if (gameState?.phase === 'leaderboard' && session?.playerId) {
+      hapticCelebrate();
       saveGameResult({
         gameType: 'reaction-speed',
         roomCode: params.code,
@@ -371,9 +370,7 @@ export default function ReactionSpeedPage({ params }: { params: { code: string }
       // False start!
       setFalseStarted(true);
       playSound('false-start');
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate([100, 50, 100]);
-      }
+      hapticWrong();
     } else {
       // Good reaction
       const reactionTime = now - greenAtRef.current;

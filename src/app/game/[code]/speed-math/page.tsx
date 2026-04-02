@@ -16,6 +16,7 @@ import { GameSummary } from '@/components/GameSummary';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
 import { useLocale } from '@/hooks/useLocale';
+import { hapticCorrect, hapticWrong, hapticCelebrate } from '@/lib/haptics';
 
 const QUESTION_TIME = 10; // seconds
 
@@ -165,7 +166,13 @@ function ResultsView({
   useEffect(() => {
     const myAnswer = answers[myId];
     if (myAnswer) {
-      playSound(myAnswer.answerIndex === correctIndex ? 'correct' : 'wrong');
+      if (myAnswer.answerIndex === correctIndex) {
+        playSound('correct');
+        hapticCorrect();
+      } else {
+        playSound('wrong');
+        hapticWrong();
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -570,6 +577,7 @@ export default function SpeedMathPage({ params }: { params: { code: string } }) 
 
   useEffect(() => {
     if (gameState?.phase === 'leaderboard' && session?.playerId) {
+      hapticCelebrate();
       saveGameResult({
         gameType: 'speed-math',
         roomCode: params.code,

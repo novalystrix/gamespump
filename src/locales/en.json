@@ -46,6 +46,7 @@
   "common.goHome": "Go Home",
   "common.copied": "Copied!",
   "common.rematch": "Rematch (Back to Lobby)",
+  "common.playerLeft": "Player left — skipping...",
   "lobby.waitingForPlayers": "Waiting for players...",
   "lobby.startGame": "Start Game",
   "lobby.ready": "Ready",

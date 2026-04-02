@@ -15,6 +15,7 @@ import { Podium } from '@/components/Podium';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
 import { useLocale } from '@/hooks/useLocale';
+import { hapticTap, hapticCorrect, hapticCelebrate } from '@/lib/haptics';
 
 function playSound(name: string) {
   if (typeof window === 'undefined') return;
@@ -619,9 +620,13 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
         const countB = gameState.players.filter(p => answers[p.id] === 'B').length;
         const majorityIsA = countA >= countB;
         const inMajority = (myVote === 'A' && majorityIsA) || (myVote === 'B' && !majorityIsA);
-        setTimeout(() => playSound(inMajority ? 'majority' : 'minority'), 350);
+        setTimeout(() => {
+          playSound(inMajority ? 'majority' : 'minority');
+          if (inMajority) hapticCorrect();
+        }, 350);
       }
     } else if (gameState.phase === 'leaderboard' && prevPhaseRef.current !== 'leaderboard') {
+      hapticCelebrate();
       playSound('win');
     }
     prevPhaseRef.current = gameState.phase;
@@ -644,6 +649,7 @@ export default function ThisOrThatPage({ params }: { params: { code: string } })
   async function submitVote(choice: 'A' | 'B') {
     if (!session || myVote !== null || !gameState || gameState.phase !== 'voting') return;
     setMyVote(choice);
+    hapticTap();
     playSound('vote');
 
     await fetch(`/api/rooms/${params.code}/vote`, {

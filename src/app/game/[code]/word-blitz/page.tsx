@@ -15,6 +15,7 @@ import { Podium } from '@/components/Podium';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
 import { useLocale } from '@/hooks/useLocale';
+import { hapticTap, hapticCelebrate } from '@/lib/haptics';
 
 const ROUND_TIME = 30; // seconds
 
@@ -559,6 +560,7 @@ export default function WordBlitzPage({ params }: { params: { code: string } }) 
 
   useEffect(() => {
     if (gameState?.phase === 'leaderboard' && session?.playerId) {
+      hapticCelebrate();
       saveGameResult({
         gameType: 'word-blitz',
         roomCode: params.code,
@@ -610,6 +612,7 @@ export default function WordBlitzPage({ params }: { params: { code: string } }) 
     if (res.ok) {
       const data = await res.json();
       setInputWord('');
+      hapticTap();
       playSound('word-accept');
       // Score popup
       scorePopupKeyRef.current++;

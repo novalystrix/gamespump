@@ -16,6 +16,7 @@ import { GameSummary } from '@/components/GameSummary';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
 import { useLocale } from '@/hooks/useLocale';
+import { hapticCorrect, hapticWrong, hapticCelebrate } from '@/lib/haptics';
 
 const ROUND_TIME = 7; // seconds
 
@@ -365,6 +366,7 @@ export default function EmojiBattlePage({ params }: { params: { code: string } }
 
   useEffect(() => {
     if (gameState?.phase === 'leaderboard' && session?.playerId) {
+      hapticCelebrate();
       saveGameResult({
         gameType: 'emoji-battle',
         roomCode: params.code,
@@ -383,7 +385,10 @@ export default function EmojiBattlePage({ params }: { params: { code: string } }
     const isCorrect = emojiIndex === gameState.correctIndex;
     setFlashIndex(emojiIndex);
     setFlashType(isCorrect ? 'correct' : 'wrong');
-    if (!isCorrect) {
+    if (isCorrect) {
+      hapticCorrect();
+    } else {
+      hapticWrong();
       setShaking(true);
       setTimeout(() => setShaking(false), 300);
     }

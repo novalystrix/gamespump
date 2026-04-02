@@ -15,6 +15,7 @@ import { Podium } from '@/components/Podium';
 import { AchievementToast } from '@/components/AchievementToast';
 import { useAchievementCheck } from '@/hooks/useAchievementCheck';
 import { useLocale } from '@/hooks/useLocale';
+import { hapticTap, hapticCorrect, hapticCelebrate } from '@/lib/haptics';
 
 const ROUND_TIME = 30;
 
@@ -770,6 +771,7 @@ export default function QuickDrawPage({ params }: { params: { code: string } }) 
 
   useEffect(() => {
     if (gameState?.phase === 'leaderboard' && session?.playerId) {
+      hapticCelebrate();
       saveGameResult({
         gameType: 'quick-draw',
         roomCode: params.code,
@@ -803,11 +805,13 @@ export default function QuickDrawPage({ params }: { params: { code: string } }) 
       const data = await res.json();
       if (data.correct) {
         setHasGuessedCorrectly(true);
+        hapticCorrect();
         playSound('correct');
         scorePopupKeyRef.current++;
         setScorePopup({ points: data.points, key: scorePopupKeyRef.current });
         setTimeout(() => setScorePopup(null), 1200);
       } else {
+        hapticTap();
         playSound('wrong');
         guessInputRef.current?.focus();
       }
@@ -863,6 +867,7 @@ export default function QuickDrawPage({ params }: { params: { code: string } }) 
   const isDrawer = myId === gameState.currentDrawerId;
   const isHost = gameState.players.find(p => p.id === myId)?.isHost ?? false;
   const drawer = gameState.players.find(p => p.id === gameState.currentDrawerId);
+  const drawerLeft = gameState.phase === 'drawing' && !gameState.players.some(p => p.id === gameState.currentDrawerId);
   const guesserCount = gameState.players.length - 1;
   const correctCount = gameState.correctGuessers.length;
 
@@ -927,7 +932,11 @@ export default function QuickDrawPage({ params }: { params: { code: string } }) 
             {/* ── DRAWING PHASE ── */}
             {gameState.phase === 'drawing' && (
               <>
-                {isDrawer ? (
+                {drawerLeft ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <p className="text-white/40 text-sm italic animate-pulse">{t('common.playerLeft')}</p>
+                  </div>
+                ) : isDrawer ? (
                   /* ── DRAWER VIEW ── */
                   <>
                     {/* Word prompt */}
