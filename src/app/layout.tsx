@@ -5,6 +5,7 @@ import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistratio
 import { AnalyticsInit } from "@/components/AnalyticsInit";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { headers } from "next/headers";
+import AnalyticsProvider from "@/components/AnalyticsProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -118,6 +119,7 @@ export default function RootLayout({
         <LanguageToggle />
         <ServiceWorkerRegistration />
         <AnalyticsInit />
+        <AnalyticsProvider />
         {children}
       </body>
     </html>
