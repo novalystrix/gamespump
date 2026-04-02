@@ -132,6 +132,29 @@ export function trackShare(method: string, gameType?: string): void {
   track('share', { method, gameType: gameType ?? 'unknown' });
 }
 
+// ── Server sync helpers ────────────────────────────────────────────────
+
+const SENT_INDEX_KEY = 'gamespump_analytics_sent_idx';
+
+export function getUnsentEvents(): AnalyticsEvent[] {
+  if (typeof window === 'undefined') return [];
+  const events = getEvents();
+  try {
+    const idx = parseInt(localStorage.getItem(SENT_INDEX_KEY) ?? '0', 10);
+    return events.slice(idx);
+  } catch {
+    return events;
+  }
+}
+
+export function markEventsSent(count: number): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const idx = parseInt(localStorage.getItem(SENT_INDEX_KEY) ?? '0', 10);
+    localStorage.setItem(SENT_INDEX_KEY, String(idx + count));
+  } catch {}
+}
+
 // ── Aggregation (for admin stats page) ─────────────────────────────────
 
 export function getAnalyticsSnapshot(): AnalyticsSnapshot {

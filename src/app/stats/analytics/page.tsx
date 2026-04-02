@@ -5,16 +5,49 @@ import { useRouter } from 'next/navigation';
 import { getAnalyticsSnapshot, AnalyticsSnapshot } from '@/lib/analytics';
 import { trackPageView } from '@/lib/analytics';
 
+type DataSource = 'server' | 'local';
+
 export default function AnalyticsPage() {
   const router = useRouter();
+  const [source, setSource] = useState<DataSource>('server');
   const [data, setData] = useState<AnalyticsSnapshot | null>(null);
+  const [serverError, setServerError] = useState(false);
 
   useEffect(() => {
     trackPageView('analytics');
-    setData(getAnalyticsSnapshot());
-    const interval = setInterval(() => setData(getAnalyticsSnapshot()), 5000);
-    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+
+    async function loadServer() {
+      try {
+        const res = await fetch('/api/analytics/dashboard');
+        if (!res.ok) throw new Error('server error');
+        const json = await res.json();
+        // Server dashboard doesn't return recentEvents — fill with empty array
+        setData({ ...json, recentEvents: [] });
+        setServerError(false);
+      } catch {
+        setServerError(true);
+        setData(getAnalyticsSnapshot());
+      }
+    }
+
+    function loadLocal() {
+      setData(getAnalyticsSnapshot());
+    }
+
+    if (source === 'server') {
+      loadServer();
+      interval = setInterval(loadServer, 30000);
+    } else {
+      loadLocal();
+      interval = setInterval(loadLocal, 5000);
+    }
+
+    return () => clearInterval(interval);
+  }, [source]);
 
   if (!data) {
     return (
@@ -30,7 +63,9 @@ export default function AnalyticsPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-display font-bold text-white">📊 Analytics</h1>
-          <p className="text-white/40 text-sm mt-1">Client-side tracking data</p>
+          <p className="text-white/40 text-sm mt-1">
+            {source === 'server' && !serverError ? 'Server data — last 30 days' : 'Client-side tracking data'}
+          </p>
         </div>
         <button
           onClick={() => router.push('/')}
@@ -39,6 +74,36 @@ export default function AnalyticsPage() {
           ← Home
         </button>
       </div>
+
+      {/* Source Toggle */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setSource('server')}
+          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+            source === 'server'
+              ? 'bg-purple-600 text-white'
+              : 'glass text-white/50 hover:text-white'
+          }`}
+        >
+          Server Data
+        </button>
+        <button
+          onClick={() => setSource('local')}
+          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+            source === 'local'
+              ? 'bg-purple-600 text-white'
+              : 'glass text-white/50 hover:text-white'
+          }`}
+        >
+          Local Data
+        </button>
+      </div>
+
+      {source === 'server' && serverError && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-sm">
+          Server unavailable — showing local data
+        </div>
+      )}
 
       {/* Overview Cards */}
       <div className="grid grid-cols-2 gap-3 mb-8">
@@ -111,8 +176,8 @@ export default function AnalyticsPage() {
         </Section>
       )}
 
-      {/* Recent Events */}
-      {data.recentEvents.length > 0 && (
+      {/* Recent Events — local only */}
+      {source === 'local' && data.recentEvents.length > 0 && (
         <Section title="Recent Events">
           {data.recentEvents.map((ev, i) => (
             <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
@@ -131,7 +196,9 @@ export default function AnalyticsPage() {
       )}
 
       <p className="text-center text-white/20 text-xs mt-8 mb-4">
-        Data is stored locally in your browser. Refresh to update.
+        {source === 'server' && !serverError
+          ? 'Aggregated across all users — last 30 days'
+          : 'Data is stored locally in your browser. Refresh to update.'}
       </p>
     </main>
   );
