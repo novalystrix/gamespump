@@ -55,6 +55,14 @@ function getIP(req: NextRequest): string {
 
 function isRateLimited(ipHash: string): boolean {
   const now = Date.now();
+
+  // Sweep stale entries (keep map from growing forever)
+  if (rateLimitMap.size > 1000) {
+    Array.from(rateLimitMap.entries()).forEach(([key, val]) => {
+      if (now - val.windowStart > RATE_LIMIT_WINDOW) rateLimitMap.delete(key);
+    });
+  }
+
   const entry = rateLimitMap.get(ipHash);
   if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW) {
     rateLimitMap.set(ipHash, { count: 1, windowStart: now });
@@ -121,19 +129,20 @@ export async function POST(req: NextRequest) {
   try {
     await ensureTable();
 
-    for (const ev of validEvents) {
-      await query(
-        `INSERT INTO analytics_events (event, props, visitor_id, session_id, ip_hash)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [
-          ev.event,
-          JSON.stringify(ev.props ?? {}),
-          ev.visitorId,
-          ev.sessionId,
-          ipHash,
-        ]
-      );
-    }
+    // Multi-row INSERT for the whole batch
+    const values: unknown[] = [];
+    const placeholders: string[] = [];
+    validEvents.forEach((ev, i) => {
+      const offset = i * 5;
+      placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`);
+      values.push(ev.event, JSON.stringify(ev.props ?? {}), ev.visitorId, ev.sessionId, ipHash);
+    });
+
+    await query(
+      `INSERT INTO analytics_events (event, props, visitor_id, session_id, ip_hash)
+       VALUES ${placeholders.join(', ')}`,
+      values
+    );
 
     return NextResponse.json({ ok: true, count: validEvents.length });
   } catch {

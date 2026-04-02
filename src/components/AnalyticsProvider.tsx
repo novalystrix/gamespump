@@ -36,6 +36,10 @@ function flushBeacon(): void {
   }
 }
 
+function handleVisibilityChange(): void {
+  if (document.visibilityState === 'hidden') flushBeacon();
+}
+
 export default function AnalyticsProvider() {
   useEffect(() => {
     // Flush any accumulated events on mount
@@ -43,14 +47,12 @@ export default function AnalyticsProvider() {
 
     const interval = setInterval(flush, FLUSH_INTERVAL_MS);
 
-    window.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') flushBeacon();
-    });
+    window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('pagehide', flushBeacon);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('visibilitychange', flushBeacon);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pagehide', flushBeacon);
     };
   }, []);
