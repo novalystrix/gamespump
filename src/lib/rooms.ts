@@ -1,4 +1,4 @@
-import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState, LieDetectorGameState, ColorChaosGameState, ColorChaosRound } from './types';
+import { Room, Player, TriviaGameState, TriviaAnswer, MemoryMatchGameState, ThisOrThatGameState, SpeedMathGameState, WordBlitzGameState, GameState, QuickDrawGameState, EmojiBattleGameState, ReactionSpeedGameState, LieDetectorGameState, ColorChaosGameState, ColorChaosRound, GAMES } from './types';
 import { generateRound } from './emoji-sets';
 import { getShuffledQuestions } from './trivia-questions';
 import { getShuffledHebrewQuestions } from './trivia-questions-he';
@@ -67,7 +67,15 @@ export function getRoom(code: string): Room | null {
 export function joinRoom(code: string, player: Player): Room | null {
   const room = getRoom(code);
   if (!room) return null;
-  
+
+  // Allow rejoin (same player ID already in room), otherwise enforce maxPlayers
+  const isRejoin = room.players.some(p => p.id === player.id);
+  if (!isRejoin) {
+    const game = GAMES.find(g => g.id === room.selectedGame);
+    const maxPlayers = game ? game.maxPlayers : 8;
+    if (room.players.length >= maxPlayers) return null;
+  }
+
   // Remove existing player with same ID (rejoin)
   room.players = room.players.filter(p => p.id !== player.id);
   room.players.push(player);
@@ -653,7 +661,14 @@ export function advanceQuickDrawRound(code: string): Room | null {
   const gs = room.gameState as QuickDrawGameState;
   if (gs.phase !== 'results') return null;
 
-  const nextRound = gs.currentRound + 1;
+  const playerIds = new Set(room.players.map(p => p.id));
+  let nextRound = gs.currentRound + 1;
+
+  // Skip rounds where the drawer has left
+  while (nextRound < gs.totalRounds && !playerIds.has(gs.drawerOrder[nextRound])) {
+    nextRound++;
+  }
+
   if (nextRound >= gs.totalRounds) {
     gs.phase = 'leaderboard';
     room.status = 'finished';
@@ -1212,7 +1227,14 @@ export function advanceLieDetectorPhase(code: string): Room | null {
   }
 
   if (gs.phase === 'results') {
-    const nextRound = gs.currentRound + 1;
+    const playerIds = new Set(room.players.map(p => p.id));
+    let nextRound = gs.currentRound + 1;
+
+    // Skip rounds where the speaker has left
+    while (nextRound < gs.totalRounds && !playerIds.has(gs.speakerOrder[nextRound])) {
+      nextRound++;
+    }
+
     if (nextRound >= gs.totalRounds) {
       gs.phase = 'leaderboard';
       room.status = 'finished';

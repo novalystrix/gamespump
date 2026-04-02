@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { joinRoom } from '@/lib/rooms';
+import { joinRoom, getRoom } from '@/lib/rooms';
 import { Player } from '@/lib/types';
 
 export async function POST(
@@ -22,9 +22,14 @@ export async function POST(
       return NextResponse.json({ error: 'id and name required' }, { status: 400 });
     }
 
+    const existingRoom = getRoom(params.code);
+    if (!existingRoom) {
+      return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+    }
+
     const room = joinRoom(params.code, player);
     if (!room) {
-      return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Room is full' }, { status: 400 });
     }
 
     return NextResponse.json({ room });

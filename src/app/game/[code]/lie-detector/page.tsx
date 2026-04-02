@@ -665,7 +665,7 @@ function LeaderboardView({
                 shadow-lg shadow-orange-500/25
                 active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
             >
-              {restarting ? 'Starting...' : t('common.playAgain')}
+              {restarting ? t('common.starting') : t('common.playAgain')}
             </button>
             <button
               onClick={async () => {
@@ -679,7 +679,7 @@ function LeaderboardView({
           </>
         ) : (
           <>
-            <div className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg bg-white/5 text-white/30 text-center">
+            <div className="w-full py-4 px-6 rounded-2xl font-display font-semibold text-lg bg-white/5 text-white/30 text-center animate-pulse">
               {t('common.waitingForHost')}
             </div>
             <button
