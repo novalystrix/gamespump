@@ -21,7 +21,9 @@ export async function GET(
     switch (gs.type) {
       case 'trivia-clash': {
         const tgs = gs as TriviaGameState;
-        const currentQ = tgs.questions[tgs.currentQuestion];
+        const locale = new URL(request.url).searchParams.get('locale') || 'he';
+        const questionPool = locale === 'en' ? tgs.questions_en : tgs.questions_he;
+        const currentQ = (questionPool ?? tgs.questions)[tgs.currentQuestion];
         const safeQuestion = tgs.phase === 'question'
           ? { question: currentQ.question, options: currentQ.options, category: currentQ.category }
           : { question: currentQ.question, options: currentQ.options, category: currentQ.category, correctIndex: currentQ.correctIndex };
@@ -69,7 +71,9 @@ export async function GET(
 
       case 'this-or-that': {
         const tgs = gs as ThisOrThatGameState;
-        const currentRound = tgs.rounds[tgs.currentRound];
+        const locale = new URL(request.url).searchParams.get('locale') || 'he';
+        const roundPool = locale === 'en' ? tgs.rounds_en : tgs.rounds_he;
+        const currentRound = (roundPool ?? tgs.rounds)[tgs.currentRound];
 
         return NextResponse.json({
           gameType: 'this-or-that',

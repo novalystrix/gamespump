@@ -253,9 +253,9 @@ export function advanceMemoryTurn(code: string): Room | null {
 // ===== THIS OR THAT LOGIC =====
 
 function initThisOrThat(room: Room): ThisOrThatGameState {
-  const rounds = room.locale === 'he'
-    ? getShuffledHebrewThisOrThat(10)
-    : getShuffledThisOrThatQuestions(10);
+  const rounds_en = getShuffledThisOrThatQuestions(10);
+  const rounds_he = getShuffledHebrewThisOrThat(10);
+  const rounds = room.locale === 'he' ? rounds_he : rounds_en;
   const scores: Record<string, number> = {};
   room.players.forEach(p => { scores[p.id] = 0; });
 
@@ -263,6 +263,8 @@ function initThisOrThat(room: Room): ThisOrThatGameState {
     type: 'this-or-that',
     currentRound: 0,
     rounds,
+    rounds_en,
+    rounds_he,
     answers: {},
     voteTimes: {},
     scores,
@@ -791,15 +793,17 @@ export function startGame(code: string, hostId: string): Room | null {
 
   switch (room.selectedGame) {
     case 'trivia-clash': {
-      const questions = room.locale === 'he'
-        ? getShuffledHebrewQuestions(10)
-        : getShuffledQuestions(10);
+      const questions_en = getShuffledQuestions(10);
+      const questions_he = getShuffledHebrewQuestions(10);
+      const questions = room.locale === 'he' ? questions_he : questions_en;
       const scores: Record<string, number> = {};
       room.players.forEach(p => { scores[p.id] = 0; });
       gameState = {
         type: 'trivia-clash',
         currentQuestion: 0,
         questions,
+        questions_en,
+        questions_he,
         answers: {},
         scores,
         questionStartedAt: Date.now(),
